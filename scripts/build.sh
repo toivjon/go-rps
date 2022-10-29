@@ -19,6 +19,6 @@ go build -o $BINPATH $ROOTPATH/cmd/client
 
 # Show information related to compilation.
 printf "Build succeeded:\n"
-printf "    Server    $BINPATH\server\n"
-printf "    Client    $BINPATH\client\n"
+printf "    Server    $BINPATH/server\n"
+printf "    Client    $BINPATH/client\n"
 printf "Build completed\n"
