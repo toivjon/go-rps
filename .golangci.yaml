@@ -1,0 +1,18 @@
+linters:
+  enable-all: true
+  disable:
+    # Linters which are deprecated.
+    - ifshort
+    - structcheck
+    - deadcode
+    - golint
+    - exhaustivestruct
+    - varcheck
+    - maligned
+    - nosnakecase
+    - scopelint
+    - interfacer
+    # Linters which do not support generics.
+    - rowserrcheck
+    - sqlclosecheck
+    - wastedassign
