@@ -7,7 +7,7 @@ A text-based rock-paper-scissors game with a client-server architecture.
 
 ## Build
 
-Use the build scripts in the scripts folder to build the applications.
+Use the following scripts to build the applications.
 
 | OS      | Script              |
 | ------- | ------------------- |
