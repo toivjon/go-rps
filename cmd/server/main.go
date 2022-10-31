@@ -1,24 +1,30 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"net"
 )
 
 const (
 	ServerHost = "localhost"
-	ServerPort = "7777"
 )
 
+const defaultPort = 7777
+
 func main() {
+	port := flag.Int("port", defaultPort, "The port to listen for incoming TCP connections.")
+	flag.Parse()
+
 	log.Println("Starting RPS server...")
 
-	server, err := net.Listen("tcp", ServerHost+":"+ServerPort)
+	server, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ServerHost, *port))
 	if err != nil {
-		log.Fatalf("Unable to start listening TCP socket on port %s: %s", ServerPort, err.Error())
+		log.Fatalf("Unable to start listening TCP socket on port %d: %s", *port, err.Error())
 	}
 	defer server.Close()
-	log.Printf("Waiting for clients on port: %s", ServerPort)
+	log.Printf("Waiting for clients on port: %d", *port)
 
 	for {
 		_, err := server.Accept()
