@@ -15,3 +15,9 @@ Use the following scripts to build the applications.
 | Linux   | ./scripts/build.sh  |
 
 Successful build binaries will be added into the ./bin folder.
+
+## Features
+
+This section lists the major and minor features of the solution.
+
+- Client-server communication is based on the TCP sockets.
