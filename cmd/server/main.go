@@ -8,10 +8,9 @@ import (
 )
 
 const (
-	ServerHost = "localhost"
+	defaultPort = 7777
+	defaultHost = "localhost"
 )
-
-const defaultPort = 7777
 
 func main() {
 	port := flag.Int("port", defaultPort, "The port to listen for incoming TCP connections.")
@@ -19,7 +18,7 @@ func main() {
 
 	log.Println("Starting RPS server...")
 
-	server, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ServerHost, *port))
+	server, err := net.Listen("tcp", fmt.Sprintf("%s:%d", defaultHost, *port))
 	if err != nil {
 		log.Fatalf("Unable to start listening TCP socket on port %d: %s", *port, err.Error())
 	}
