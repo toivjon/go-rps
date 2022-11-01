@@ -8,11 +8,9 @@ import (
 )
 
 const (
-	ServerHost = "localhost"
+	defaultPort = 7777
+	defaultHost = "localhost"
 )
-
-const defaultPort = 7777
-const defaultHost = "localhost"
 
 func main() {
 	port := flag.Int("port", defaultPort, "The port of the server.")
