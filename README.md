@@ -22,3 +22,4 @@ This section lists the major and minor features of the solution.
 
 - Client-server communication is based on the TCP sockets.
 - TCP socket port can be given as a command line argument.
+- Server IP-address or hostname can be given as client command line argument.
