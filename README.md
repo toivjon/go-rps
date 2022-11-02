@@ -21,5 +21,4 @@ Successful build binaries will be added into the ./bin folder.
 This section lists the major and minor features of the solution.
 
 - Client-server communication is based on the TCP sockets.
-- TCP socket port can be given as a command line argument.
-- Server IP-address or hostname can be given as client command line argument.
+- TCP socket connection configuration can be given as command line arguments.

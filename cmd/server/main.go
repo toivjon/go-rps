@@ -13,12 +13,13 @@ const (
 )
 
 func main() {
-	port := flag.Int("port", defaultPort, "The port to listen for incoming TCP connections.")
+	port := flag.Int("port", defaultPort, "The port to listen for connections.")
+	host := flag.String("host", defaultHost, "The network address to listen for connections.")
 	flag.Parse()
 
 	log.Println("Starting RPS server...")
 
-	server, err := net.Listen("tcp", fmt.Sprintf("%s:%d", defaultHost, *port))
+	server, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *host, *port))
 	if err != nil {
 		log.Fatalf("Unable to start listening TCP socket on port %d: %s", *port, err.Error())
 	}
