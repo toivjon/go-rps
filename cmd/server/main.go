@@ -10,6 +10,8 @@ import (
 const (
 	defaultPort = 7777
 	defaultHost = "localhost"
+
+	bufferSize = 1024
 )
 
 func main() {
@@ -27,13 +29,31 @@ func main() {
 	log.Printf("Waiting for clients on port: %d", *port)
 
 	for {
-		_, err := server.Accept()
+		conn, err := server.Accept()
 		if err != nil {
 			log.Printf("Error accepting: %s", err.Error())
 		} else {
 			log.Printf("Client connected!")
-			// ... handle connection with a new Go routine.
-			break
+			go processConnection(conn)
 		}
 	}
+}
+
+func processConnection(conn net.Conn) {
+	defer conn.Close()
+
+	buffer := make([]byte, bufferSize)
+	readByteCount, err := conn.Read(buffer)
+	if err != nil {
+		log.Printf("Failed to read buffer: %s", err)
+		return
+	}
+
+	log.Printf("Received %d bytes: %s", readByteCount, string(buffer[:readByteCount]))
+
+	if _, err = conn.Write([]byte("Pong")); err != nil {
+		log.Printf("Failed to write buffer: %s", err)
+	}
+
+	log.Printf("Successfully sent response.")
 }

@@ -10,6 +10,8 @@ import (
 const (
 	defaultPort = 7777
 	defaultHost = "localhost"
+
+	bufferSize = 1024
 )
 
 func main() {
@@ -25,5 +27,18 @@ func main() {
 	}
 	defer conn.Close()
 
+	buffer := make([]byte, bufferSize)
+	if _, err = conn.Write([]byte("Ping")); err != nil {
+		log.Printf("Failed to write buffer: %s", err)
+		return
+	}
+
+	readByteCount, err := conn.Read(buffer)
+	if err != nil {
+		log.Printf("Failed to read buffer: %s", err)
+		return
+	}
+
+	log.Printf("Received %d bytes: %s", readByteCount, string(buffer[:readByteCount]))
 	log.Println("Successfully pinged server!")
 }
