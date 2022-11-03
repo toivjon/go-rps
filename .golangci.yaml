@@ -16,3 +16,6 @@ linters:
     - rowserrcheck
     - sqlclosecheck
     - wastedassign
+    # Linters which are not wanted.
+    - wsl
+    - nlreturn
