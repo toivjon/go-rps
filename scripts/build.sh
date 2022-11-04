@@ -14,8 +14,8 @@ mkdir -p $BINPATH
 
 # Build the binaries.
 printf "Building the binaries. Please wait...\n"
-go build -o $BINPATH $ROOTPATH/cmd/server
-go build -o $BINPATH $ROOTPATH/cmd/client
+go build -o $BINPATH/ $ROOTPATH/cmd/server
+go build -o $BINPATH/ $ROOTPATH/cmd/client
 
 # Show information related to compilation.
 printf "Build succeeded:\n"
