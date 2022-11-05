@@ -6,6 +6,13 @@
 
 A text-based rock-paper-scissors game with a client-server architecture.
 
+## Features
+
+This section lists the major and minor features of the solution.
+
+- Client-server communication is based on the TCP sockets.
+- TCP socket connection configuration can be given as command line arguments.
+
 ## Build
 
 Use the following scripts to build the applications.
@@ -16,13 +23,6 @@ Use the following scripts to build the applications.
 | Linux   | ./scripts/build.sh  |
 
 Successful build binaries will be added into the ./bin folder.
-
-## Features
-
-This section lists the major and minor features of the solution.
-
-- Client-server communication is based on the TCP sockets.
-- TCP socket connection configuration can be given as command line arguments.
 
 ## Unit Test
 
