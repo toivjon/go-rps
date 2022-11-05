@@ -7,7 +7,7 @@ ROOTPATH=$(dirname $ROOTPATH)
 cd $ROOTPATH
 
 # Run the unit tests.
-print "Running unit tests. Please wait...\n"
+printf "Running unit tests. Please wait...\n"
 go test -failfast -short -coverprofile coverage.out ./...
 
 # Find the unit tests coverage.
