@@ -34,3 +34,30 @@ Use the following scripts to run unit tests for the application.
 | Linux   | ./scripts/unit-test.sh  |
 
 These scripts will also check that code coverage is within the threshold.
+
+## Game Sequence
+
+This section describes how the gaming sequence works.
+
+```mermaid
+sequenceDiagram
+  participant c as Client
+  participant s as Server
+
+  activate c
+  c->>s: Connect [name]
+  activate s
+  s->>s: Register Client [name]
+  s-)c: Connect OK
+  c->>c: Wait for server
+  deactivate c
+  s->>s: Wait for an another client
+  s-)c: Start [opponent-name]
+  activate c
+  c-)s: Select [selection]
+  s->>s: Wait for another client's selection
+  s->>s: Resolve result
+  s-)c: Result [opponent-selection]
+  deactivate c
+  deactivate s
+```
