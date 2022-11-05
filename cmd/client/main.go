@@ -12,11 +12,13 @@ import (
 const (
 	defaultPort = 7777
 	defaultHost = "localhost"
+	defaultName = "anonymous"
 )
 
 func main() {
 	port := flag.Int("port", defaultPort, "The port of the server.")
 	host := flag.String("host", defaultHost, "The IP address or hostname of the server.")
+	name := flag.String("name", defaultName, "The name of the player.")
 	flag.Parse()
 
 	log.Println("Starting RPS client...")
@@ -27,7 +29,7 @@ func main() {
 	}
 	defer conn.Close()
 
-	out := com.ConnectMessage{Name: "Foobar"}
+	out := com.ConnectMessage{Name: *name}
 	if err := com.Write(conn, out); err != nil {
 		log.Printf("Failed to write data: %s", err)
 	}

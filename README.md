@@ -12,6 +12,7 @@ This section lists the major and minor features of the solution.
 
 - Client-server communication is based on the TCP sockets.
 - TCP socket connection configuration can be given as command line arguments.
+- Client allows user to provide a player name.
 
 ## Build
 
