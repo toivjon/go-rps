@@ -1,2 +1,5 @@
 # Application binary folder that is auto-created by the build script.
 /bin
+
+# Coverage report created by the unit tests.
+coverage.out

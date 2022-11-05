@@ -3,3 +3,7 @@ root = true
 [*]
 end_of_line = lf
 insert_final_newline = true
+
+# Batch files should always use crlf endings or otherswise labels may get messed up.
+[*.bat]
+end_of_line = crlf

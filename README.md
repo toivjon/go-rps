@@ -22,3 +22,14 @@ This section lists the major and minor features of the solution.
 
 - Client-server communication is based on the TCP sockets.
 - TCP socket connection configuration can be given as command line arguments.
+
+## Unit Test
+
+Use the following scripts to run unit tests for the application.
+
+| OS      | Script                  |
+| ------- | ----------------------- |
+| Windows | ./scripts/unit-test.bat |
+| Linux   | ./scripts/unit-test.sh  |
+
+These scripts will also check that code coverage is within the threshold.
