@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"log"
 	"net"
+
+	"github.com/toivjon/go-rps/internal/com"
 )
 
 const (
 	defaultPort = 7777
 	defaultHost = "localhost"
-
-	bufferSize = 1024
 )
 
 func main() {
@@ -27,18 +27,16 @@ func main() {
 	}
 	defer conn.Close()
 
-	buffer := make([]byte, bufferSize)
-	if _, err = conn.Write([]byte("Ping")); err != nil {
-		log.Printf("Failed to write buffer: %s", err)
-		return
+	out := com.Message{Value: "Ping"}
+	if err := com.Write(conn, out); err != nil {
+		log.Printf("Failed to write data: %s", err)
 	}
 
-	readByteCount, err := conn.Read(buffer)
+	input, err := com.Read[com.Message](conn)
 	if err != nil {
-		log.Printf("Failed to read buffer: %s", err)
-		return
+		log.Printf("Failed to read data: %s", err)
 	}
 
-	log.Printf("Received %d bytes: %s", readByteCount, string(buffer[:readByteCount]))
+	log.Printf("Read message: %+v", input)
 	log.Println("Successfully pinged server!")
 }
