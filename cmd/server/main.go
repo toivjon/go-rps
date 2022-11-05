@@ -42,7 +42,7 @@ func main() {
 func processConnection(conn net.Conn) {
 	defer conn.Close()
 
-	input, err := com.Read[com.Message](conn)
+	input, err := com.Read[com.ConnectMessage](conn)
 	if err != nil {
 		log.Printf("Failed to read data: %s", err)
 		return
@@ -50,7 +50,7 @@ func processConnection(conn net.Conn) {
 
 	log.Printf("Read message: %+v", input)
 
-	out := com.Message{Value: "Pong"}
+	out := com.ConnectedMessage{OK: true}
 	if err := com.Write(conn, out); err != nil {
 		log.Printf("Failed to write data: %s", err)
 		return

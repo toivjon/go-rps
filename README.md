@@ -48,7 +48,7 @@ sequenceDiagram
   c->>s: Connect [name]
   activate s
   s->>s: Register Client [name]
-  s-)c: Connect OK
+  s-)c: Connected
   c->>c: Wait for server
   deactivate c
   s->>s: Wait for an another client

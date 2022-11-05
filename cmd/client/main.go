@@ -27,12 +27,12 @@ func main() {
 	}
 	defer conn.Close()
 
-	out := com.Message{Value: "Ping"}
+	out := com.ConnectMessage{Name: "Foobar"}
 	if err := com.Write(conn, out); err != nil {
 		log.Printf("Failed to write data: %s", err)
 	}
 
-	input, err := com.Read[com.Message](conn)
+	input, err := com.Read[com.ConnectedMessage](conn)
 	if err != nil {
 		log.Printf("Failed to read data: %s", err)
 	}
