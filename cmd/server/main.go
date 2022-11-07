@@ -21,15 +21,15 @@ func main() {
 
 	log.Println("Starting RPS server...")
 
-	server, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *host, *port))
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *host, *port))
 	if err != nil {
 		log.Fatalf("Unable to start listening TCP socket on port %d: %s", *port, err.Error())
 	}
-	defer server.Close()
+	defer listener.Close()
 	log.Printf("Waiting for clients on port: %d", *port)
 
 	for {
-		conn, err := server.Accept()
+		conn, err := listener.Accept()
 		if err != nil {
 			log.Printf("Error accepting: %s", err.Error())
 		} else {
