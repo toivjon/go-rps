@@ -1,11 +1,22 @@
 package com
 
-// ConnectMessage is the initial client-to-server message which also contains the player name.
-type ConnectMessage struct {
-	Name string `json:"name"`
+import "encoding/json"
+
+// MessageType specifies the type of the network message.
+type MessageType string
+
+const (
+	MessageTypeConnect   MessageType = "CONNECT"   // Connection is being opened.
+	MessageTypeConnected MessageType = "CONNECTED" // Connection was opened.
+)
+
+// Message is base structure for each message being sent between the nodes.
+type Message struct {
+	Type    MessageType     `json:"type"`
+	Content json.RawMessage `json:"content,omitempty"`
 }
 
-// ConnectedMessage is the response to client's initial message.
-type ConnectedMessage struct {
-	OK bool `json:"ok"`
+// ConnectContent contains the content payload for the CONNECT message.
+type ConnectContent struct {
+	Name string `json:"name"`
 }

@@ -24,6 +24,28 @@ func Write[T any](writer Writer, data T) error {
 	return nil
 }
 
+// WriteConnect writes a CONNECT message as a JSON with the given writer.
+func WriteConnect(writer Writer, content ConnectContent) error {
+	bytes, err := json.Marshal(content)
+	if err != nil {
+		return fmt.Errorf("failed to marshal CONNECT content: %w", err)
+	}
+	out := Message{Type: MessageTypeConnect, Content: bytes}
+	if err := Write(writer, out); err != nil {
+		return fmt.Errorf("failed to write CONNECT message: %w", err)
+	}
+	return nil
+}
+
+// WriteConnected writes a CONNECTED message as a JSON with the given writer.
+func WriteConnected(writer Writer) error {
+	out := Message{Type: MessageTypeConnected, Content: nil}
+	if err := Write(writer, out); err != nil {
+		return fmt.Errorf("failed to write CONNECTED message: %w", err)
+	}
+	return nil
+}
+
 // Reader is able to read data from the target.
 type Reader interface {
 	Read(b []byte) (n int, err error)
