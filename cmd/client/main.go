@@ -1,10 +1,13 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
+	"time"
 
 	"github.com/toivjon/go-rps/internal/com"
 )
@@ -29,15 +32,45 @@ func main() {
 	}
 	defer conn.Close()
 
-	if err := com.WriteConnect(conn, com.ConnectContent{Name: *name}); err != nil {
-		log.Printf("Failed to write data: %s", err)
-	}
-
-	input, err := com.Read[com.Message](conn)
-	if err != nil {
-		log.Printf("Failed to read data: %s", err)
-	}
-
-	log.Printf("Read message: %+v", input)
+	start(conn, *name)
 	log.Println("Successfully pinged server!")
+}
+
+func start(conn net.Conn, name string) {
+	inbox := newInbox(conn)
+	for {
+		select {
+		case message := <-inbox:
+			switch message.Type {
+			case com.MessageTypeConnect:
+				break
+			case com.MessageTypeConnected:
+				break
+			}
+			log.Printf("Received message: %+v", message)
+			return
+		case <-time.After(time.Second):
+			if err := com.WriteConnect(conn, com.ConnectContent{Name: name}); err != nil {
+				log.Printf("Failed to write data: %s", err)
+			}
+		}
+	}
+}
+
+func newInbox(conn net.Conn) <-chan com.Message {
+	inbox := make(chan com.Message)
+	go func() {
+		for {
+			message, err := com.Read[com.Message](conn)
+			if errors.Is(err, io.EOF) {
+				log.Printf("Closing client. Server closed the connection.")
+				break
+			} else if err != nil {
+				log.Printf("Failed to read message: %s", err)
+				break
+			}
+			inbox <- *message
+		}
+	}()
+	return inbox
 }
