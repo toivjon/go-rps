@@ -36,11 +36,11 @@ func main() {
 }
 
 func start(conn net.Conn, name string) {
-	close := make(chan error)
-	inbox := newInbox(conn, close)
+	end := make(chan error)
+	inbox := newInbox(conn, end)
 	for {
 		select {
-		case err := <-close:
+		case err := <-end:
 			log.Printf("Received close signal: %v", err)
 			return
 		case message := <-inbox:
@@ -59,16 +59,16 @@ func start(conn net.Conn, name string) {
 	}
 }
 
-func newInbox(conn net.Conn, close chan<- error) <-chan com.Message {
+func newInbox(conn net.Conn, end chan<- error) <-chan com.Message {
 	inbox := make(chan com.Message)
 	go func() {
 		for {
 			message, err := com.Read[com.Message](conn)
 			switch {
 			case errors.Is(err, io.EOF):
-				close <- errors.New("remote machine closed the connection")
+				end <- errors.New("remote machine closed the connection")
 			case err != nil:
-				close <- fmt.Errorf("failed to read message. %w", err)
+				end <- fmt.Errorf("failed to read message. %w", err)
 			default:
 				inbox <- *message
 			}
