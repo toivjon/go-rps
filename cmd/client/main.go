@@ -33,7 +33,6 @@ func main() {
 	defer conn.Close()
 
 	start(conn, *name)
-	log.Println("Successfully pinged server!")
 }
 
 func start(conn net.Conn, name string) {
