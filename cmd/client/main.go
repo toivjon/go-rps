@@ -64,14 +64,14 @@ func newInbox(conn net.Conn, close chan<- error) <-chan com.Message {
 	go func() {
 		for {
 			message, err := com.Read[com.Message](conn)
-			if errors.Is(err, io.EOF) {
+			switch {
+			case errors.Is(err, io.EOF):
 				close <- errors.New("remote machine closed the connection")
-				break
-			} else if err != nil {
+			case err != nil:
 				close <- fmt.Errorf("failed to read message. %w", err)
-				break
+			default:
+				inbox <- *message
 			}
-			inbox <- *message
 		}
 	}()
 	return inbox
