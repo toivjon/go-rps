@@ -36,9 +36,13 @@ func main() {
 }
 
 func start(conn net.Conn, name string) {
-	inbox := newInbox(conn)
+	close := make(chan error)
+	inbox := newInbox(conn, close)
 	for {
 		select {
+		case err := <-close:
+			log.Printf("Received close signal: %v", err)
+			return
 		case message := <-inbox:
 			switch message.Type {
 			case com.MessageTypeConnect:
@@ -47,7 +51,6 @@ func start(conn net.Conn, name string) {
 				break
 			}
 			log.Printf("Received message: %+v", message)
-			return
 		case <-time.After(time.Second):
 			if err := com.WriteConnect(conn, com.ConnectContent{Name: name}); err != nil {
 				log.Printf("Failed to write data: %s", err)
@@ -56,16 +59,16 @@ func start(conn net.Conn, name string) {
 	}
 }
 
-func newInbox(conn net.Conn) <-chan com.Message {
+func newInbox(conn net.Conn, close chan<- error) <-chan com.Message {
 	inbox := make(chan com.Message)
 	go func() {
 		for {
 			message, err := com.Read[com.Message](conn)
 			if errors.Is(err, io.EOF) {
-				log.Printf("Closing client. Server closed the connection.")
+				close <- errors.New("remote machine closed the connection")
 				break
 			} else if err != nil {
-				log.Printf("Failed to read message: %s", err)
+				close <- fmt.Errorf("failed to read message. %w", err)
 				break
 			}
 			inbox <- *message
