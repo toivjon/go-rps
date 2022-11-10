@@ -18,6 +18,8 @@ const (
 	defaultName = "anonymous"
 )
 
+var errConnClosed = errors.New("remote machine closed the connection")
+
 func main() {
 	port := flag.Int("port", defaultPort, "The port of the server.")
 	host := flag.String("host", defaultHost, "The IP address or hostname of the server.")
@@ -66,7 +68,7 @@ func newInbox(conn net.Conn, end chan<- error) <-chan com.Message {
 			message, err := com.Read[com.Message](conn)
 			switch {
 			case errors.Is(err, io.EOF):
-				end <- errors.New("remote machine closed the connection")
+				end <- errConnClosed
 			case err != nil:
 				end <- fmt.Errorf("failed to read message. %w", err)
 			default:
