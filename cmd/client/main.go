@@ -21,30 +21,33 @@ const (
 var errConnClosed = errors.New("remote machine closed the connection")
 
 func main() {
-	port := flag.Int("port", defaultPort, "The port of the server.")
+	port := flag.Uint("port", defaultPort, "The port of the server.")
 	host := flag.String("host", defaultHost, "The IP address or hostname of the server.")
 	name := flag.String("name", defaultName, "The name of the player.")
 	flag.Parse()
 
 	log.Println("Starting RPS client...")
 
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", *host, *port))
+	if err := start(*port, *host, *name); err != nil {
+		log.Fatalf("Client was closed due an error: %v", err)
+	}
+	log.Println("Client was closed successfully.")
+}
+
+func start(port uint, host, name string) error {
+	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed to open TCP connection: %w", err)
 	}
 	defer conn.Close()
 
-	start(conn, *name)
-}
-
-func start(conn net.Conn, name string) {
 	end := make(chan error)
 	inbox := newInbox(conn, end)
+
 	for {
 		select {
 		case err := <-end:
-			log.Printf("Received close signal: %v", err)
-			return
+			return err
 		case message := <-inbox:
 			switch message.Type {
 			case com.MessageTypeConnect:
