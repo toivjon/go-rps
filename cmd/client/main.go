@@ -18,7 +18,10 @@ const (
 	defaultName = "anonymous"
 )
 
-var errConnClosed = errors.New("remote machine closed the connection")
+var (
+	errConnClosed = errors.New("remote machine closed the connection")
+	errConnected  = errors.New("received unsupported CONNECTED message")
+)
 
 func main() {
 	port := flag.Uint("port", defaultPort, "The port of the server.")
@@ -41,8 +44,8 @@ func start(port uint, host, name string) error {
 	}
 	defer conn.Close()
 
-	end := make(chan error)
-	inbox := newInbox(conn, end)
+	end := make(chan error)      // A channel for ending the application.
+	inbox := newInbox(conn, end) // A generator for incoming messages.
 
 	for {
 		select {
@@ -50,10 +53,11 @@ func start(port uint, host, name string) error {
 			return err
 		case message := <-inbox:
 			switch message.Type {
-			case com.MessageTypeConnect:
-				break
 			case com.MessageTypeConnected:
+				// ... wait for start message.
 				break
+			case com.MessageTypeConnect:
+				return errConnected
 			}
 			log.Printf("Received message: %+v", message)
 		case <-time.After(time.Second):
