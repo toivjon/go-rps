@@ -41,6 +41,7 @@ func start(port uint, host string) error {
 
 	accept := newAccept(listener)
 	disconnect := make(chan net.Conn)
+	join := make(chan *Player)
 
 	conns := make(map[net.Conn]*Player)
 
@@ -48,10 +49,14 @@ func start(port uint, host string) error {
 		select {
 		case conn := <-accept:
 			conns[conn] = &Player{Conn: conn, Name: ""}
-			log.Printf("Hello: %v (conns: %d)", conn, len(conns))
-			go processConnection(conn, disconnect, conns[conn])
+			log.Printf("Connection %v added (conns: %d)", conn, len(conns))
+			go processConnection(conn, disconnect, conns[conn], join)
+		case player := <-join:
+			conns[player.Conn].Name = player.Name
+			log.Printf("Player %q joined.", player.Name)
+			// ... add to matchmaker.
 		case conn := <-disconnect:
-			log.Printf("Bye Bye: %s", conns[conn].Name)
+			log.Printf("Player %q left.", conns[conn].Name)
 			delete(conns, conn)
 			log.Printf("Connection %v removed (conns: %d)", conn, len(conns))
 		}
@@ -73,7 +78,7 @@ func newAccept(listener net.Listener) <-chan net.Conn {
 	return accept
 }
 
-func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *Player) {
+func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *Player, join chan<- *Player) {
 	defer func() {
 		conn.Close()
 		disconnect <- conn
@@ -101,5 +106,5 @@ func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *Player
 		return
 	}
 
-	log.Printf("Successfully sent response.")
+	join <- player
 }
