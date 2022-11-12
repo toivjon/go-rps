@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -13,6 +14,11 @@ const (
 	defaultPort = 7777
 	defaultHost = "localhost"
 )
+
+type Player struct {
+	Conn net.Conn
+	Name string
+}
 
 func main() {
 	port := flag.Uint("port", defaultPort, "The port to listen for connections.")
@@ -36,17 +42,18 @@ func start(port uint, host string) error {
 	accept := newAccept(listener)
 	disconnect := make(chan net.Conn)
 
-	conns := make(map[net.Conn]bool)
+	conns := make(map[net.Conn]*Player)
 
 	for {
 		select {
 		case conn := <-accept:
-			conns[conn] = true
+			conns[conn] = &Player{Conn: conn, Name: ""}
 			log.Printf("Hello: %v (conns: %d)", conn, len(conns))
-			go processConnection(conn, disconnect)
+			go processConnection(conn, disconnect, conns[conn])
 		case conn := <-disconnect:
+			log.Printf("Bye Bye: %s", conns[conn].Name)
 			delete(conns, conn)
-			log.Printf("Bye Bye: %v (conns: %d)", conn, len(conns))
+			log.Printf("Connection %v removed (conns: %d)", conn, len(conns))
 		}
 	}
 }
@@ -66,7 +73,7 @@ func newAccept(listener net.Listener) <-chan net.Conn {
 	return accept
 }
 
-func processConnection(conn net.Conn, disconnect chan<- net.Conn) {
+func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *Player) {
 	defer func() {
 		conn.Close()
 		disconnect <- conn
@@ -79,7 +86,15 @@ func processConnection(conn net.Conn, disconnect chan<- net.Conn) {
 		return
 	}
 
-	log.Printf("Read message: %+v", input)
+	content := new(com.ConnectContent)
+	if err := json.Unmarshal(input.Content, content); err != nil {
+		log.Printf("Failed to unmarshal message content. %v", err)
+		disconnect <- conn
+	}
+
+	player.Name = content.Name
+
+	log.Printf("Read message: %+v content: %+v", input, content)
 
 	if err := com.WriteConnected(conn); err != nil {
 		log.Printf("Failed to write data: %s", err)
