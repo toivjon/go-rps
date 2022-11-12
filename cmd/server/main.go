@@ -56,6 +56,7 @@ func start(port uint, host string) error {
 			log.Printf("Player %q joined.", player.Name)
 			// ... add to matchmaker.
 		case conn := <-disconnect:
+			// ... remove from matchmaker.
 			log.Printf("Player %q left.", conns[conn].Name)
 			delete(conns, conn)
 			log.Printf("Connection %v removed (conns: %d)", conn, len(conns))
