@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"time"
 
 	"github.com/toivjon/go-rps/internal/com"
 )
@@ -46,6 +45,10 @@ func start(port uint, host, name string) error {
 	end := make(chan error)      // A channel for ending the application.
 	inbox := newInbox(conn, end) // A generator for incoming messages.
 
+	if err := com.WriteConnect(conn, com.ConnectContent{Name: name}); err != nil {
+		log.Printf("Failed to write data: %s", err)
+	}
+
 	for {
 		select {
 		case err := <-end:
@@ -59,10 +62,6 @@ func start(port uint, host, name string) error {
 				return errConnected
 			}
 			log.Printf("Received message: %+v", message)
-		case <-time.After(time.Second):
-			if err := com.WriteConnect(conn, com.ConnectContent{Name: name}); err != nil {
-				log.Printf("Failed to write data: %s", err)
-			}
 		}
 	}
 }

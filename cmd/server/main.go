@@ -33,23 +33,49 @@ func start(port uint, host string) error {
 	defer listener.Close()
 	log.Printf("Waiting for clients on port: %d", port)
 
+	accept := newAccept(listener)
+	disconnect := make(chan net.Conn)
+
+	conns := make(map[net.Conn]bool)
+
 	for {
-		conn, err := listener.Accept()
-		if err != nil {
-			log.Printf("Error accepting: %s", err.Error())
-		} else {
-			log.Printf("Client connected!")
-			go processConnection(conn)
+		select {
+		case conn := <-accept:
+			conns[conn] = true
+			log.Printf("Hello: %v (conns: %d)", conn, len(conns))
+			go processConnection(conn, disconnect)
+		case conn := <-disconnect:
+			delete(conns, conn)
+			log.Printf("Bye Bye: %v (conns: %d)", conn, len(conns))
 		}
 	}
 }
 
-func processConnection(conn net.Conn) {
-	defer conn.Close()
+func newAccept(listener net.Listener) <-chan net.Conn {
+	accept := make(chan net.Conn)
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				log.Printf("Error accepting incoming connection: %v", err.Error())
+			} else {
+				accept <- conn
+			}
+		}
+	}()
+	return accept
+}
+
+func processConnection(conn net.Conn, disconnect chan<- net.Conn) {
+	defer func() {
+		conn.Close()
+		disconnect <- conn
+	}()
 
 	input, err := com.Read[com.Message](conn)
 	if err != nil {
 		log.Printf("Failed to read data: %s", err)
+		disconnect <- conn
 		return
 	}
 
