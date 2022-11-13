@@ -45,6 +45,8 @@ func start(port uint, host string) error {
 
 	conns := make(map[net.Conn]*Player)
 
+	matchmaker := make(map[net.Conn]bool)
+
 	for {
 		select {
 		case conn := <-accept:
@@ -54,12 +56,14 @@ func start(port uint, host string) error {
 		case player := <-join:
 			conns[player.Conn].Name = player.Name
 			log.Printf("Player %q joined.", player.Name)
-			// ... add to matchmaker.
+			enterMatchmaker(matchmaker, *player)
 		case conn := <-disconnect:
-			// ... remove from matchmaker.
-			log.Printf("Player %q left.", conns[conn].Name)
-			delete(conns, conn)
-			log.Printf("Connection %v removed (conns: %d)", conn, len(conns))
+			if player, found := conns[conn]; found {
+				leaveMatchmaker(matchmaker, *player)
+				log.Printf("Player %q left.", conns[conn].Name)
+				delete(conns, conn)
+				log.Printf("Connection %v removed (conns: %d)", conn, len(conns))
+			}
 		}
 	}
 }
@@ -81,8 +85,8 @@ func newAccept(listener net.Listener) <-chan net.Conn {
 
 func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *Player, join chan<- *Player) {
 	defer func() {
-		conn.Close()
 		disconnect <- conn
+		conn.Close()
 	}()
 
 	input, err := com.Read[com.Message](conn)
@@ -108,4 +112,28 @@ func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *Player
 	}
 
 	join <- player
+
+	for {
+		_, err = com.Read[com.Message](conn)
+		if err != nil {
+			log.Printf("Failed to read data: %s", err)
+			disconnect <- conn
+			return
+		}
+	}
+}
+
+func enterMatchmaker(matchmaker map[net.Conn]bool, player Player) {
+	if len(matchmaker) > 0 {
+		// ... match found! start a game session.
+		log.Printf("Matchmaker found an opponent. Let the game begin!")
+	} else {
+		matchmaker[player.Conn] = true
+		log.Printf("Player %q joined matchmaker.", player.Name)
+	}
+}
+
+func leaveMatchmaker(matchmaker map[net.Conn]bool, player Player) {
+	delete(matchmaker, player.Conn)
+	log.Printf("Player %q left matchmaker.", player.Name)
 }
