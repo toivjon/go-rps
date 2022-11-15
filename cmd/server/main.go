@@ -8,17 +8,13 @@ import (
 	"net"
 
 	"github.com/toivjon/go-rps/internal/com"
+	"github.com/toivjon/go-rps/internal/server"
 )
 
 const (
 	defaultPort = 7777
 	defaultHost = "localhost"
 )
-
-type Player struct {
-	Conn net.Conn
-	Name string
-}
 
 func main() {
 	port := flag.Uint("port", defaultPort, "The port to listen for connections.")
@@ -41,16 +37,16 @@ func start(port uint, host string) error {
 
 	accept := newAccept(listener)
 	disconnect := make(chan net.Conn)
-	join := make(chan *Player)
+	join := make(chan *server.Player)
 
-	conns := make(map[net.Conn]*Player)
+	conns := make(map[net.Conn]*server.Player)
 
 	matchmaker := make(map[net.Conn]bool)
 
 	for {
 		select {
 		case conn := <-accept:
-			conns[conn] = &Player{Conn: conn, Name: ""}
+			conns[conn] = &server.Player{Conn: conn, Name: ""}
 			log.Printf("Connection %v added (conns: %d)", conn, len(conns))
 			go processConnection(conn, disconnect, conns[conn], join)
 		case player := <-join:
@@ -83,7 +79,7 @@ func newAccept(listener net.Listener) <-chan net.Conn {
 	return accept
 }
 
-func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *Player, join chan<- *Player) {
+func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *server.Player, join chan<- *server.Player) {
 	defer func() {
 		disconnect <- conn
 		conn.Close()
@@ -123,7 +119,7 @@ func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *Player
 	}
 }
 
-func enterMatchmaker(matchmaker map[net.Conn]bool, player Player) {
+func enterMatchmaker(matchmaker map[net.Conn]bool, player server.Player) {
 	if len(matchmaker) > 0 {
 		// ... match found! start a game session.
 		log.Printf("Matchmaker found an opponent. Let the game begin!")
@@ -133,7 +129,7 @@ func enterMatchmaker(matchmaker map[net.Conn]bool, player Player) {
 	}
 }
 
-func leaveMatchmaker(matchmaker map[net.Conn]bool, player Player) {
+func leaveMatchmaker(matchmaker map[net.Conn]bool, player server.Player) {
 	delete(matchmaker, player.Conn)
 	log.Printf("Player %q left matchmaker.", player.Name)
 }
