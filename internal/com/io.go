@@ -3,17 +3,13 @@ package com
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 )
 
 const bufferSize = 128
 
-// Writer is able to write the provided bytes of data.
-type Writer interface {
-	Write(b []byte) (n int, err error)
-}
-
 // Write marshals the provided data into a JSON and writes it with the given writer.
-func Write[T any](writer Writer, data T) error {
+func Write[T any](writer io.Writer, data T) error {
 	bytes, err := json.Marshal(data)
 	if err != nil {
 		return fmt.Errorf("failed to marshal data into JSON. %w", err)
@@ -25,7 +21,7 @@ func Write[T any](writer Writer, data T) error {
 }
 
 // WriteConnect writes a CONNECT message as a JSON with the given writer.
-func WriteConnect(writer Writer, content ConnectContent) error {
+func WriteConnect(writer io.Writer, content ConnectContent) error {
 	bytes, err := json.Marshal(content)
 	if err != nil {
 		return fmt.Errorf("failed to marshal CONNECT content: %w", err)
@@ -38,7 +34,7 @@ func WriteConnect(writer Writer, content ConnectContent) error {
 }
 
 // WriteConnected writes a CONNECTED message as a JSON with the given writer.
-func WriteConnected(writer Writer) error {
+func WriteConnected(writer io.Writer) error {
 	out := Message{Type: MessageTypeConnected, Content: nil}
 	if err := Write(writer, out); err != nil {
 		return fmt.Errorf("failed to write CONNECTED message: %w", err)
@@ -46,13 +42,8 @@ func WriteConnected(writer Writer) error {
 	return nil
 }
 
-// Reader is able to read data from the target.
-type Reader interface {
-	Read(b []byte) (n int, err error)
-}
-
 // Read reads data from the reader and unmarshals it as a JSON data.
-func Read[T any](reader Reader) (*T, error) {
+func Read[T any](reader io.Reader) (*T, error) {
 	buffer := make([]byte, bufferSize)
 	byteCount, err := reader.Read(buffer)
 	if err != nil {
