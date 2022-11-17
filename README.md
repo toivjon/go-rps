@@ -62,3 +62,14 @@ sequenceDiagram
   deactivate c
   deactivate s
 ```
+
+## Messages
+
+This section contains a description about the message types between the client and the server.
+
+| Message | Origin | Arguments       | Description                                          |
+| ------- | ------ | --------------- | ---------------------------------------------------- |
+| JOIN    | client | player name     | The initial message from client to server.           |
+| START   | server | opponent's name | Server formed a game session with two clients.       |
+| SELECT  | client | round selection | Player has made a rock, paper or scissors selection. |
+| RESULT  | server | round results   | Server has resolved game session result.             |
