@@ -36,33 +36,6 @@ Use the following scripts to run unit tests for the application.
 
 These scripts will also check that code coverage is within the threshold.
 
-## Game Sequence
-
-This section describes how the gaming sequence works.
-
-```mermaid
-sequenceDiagram
-  participant c as Client
-  participant s as Server
-
-  activate c
-  c->>s: Connect [name]
-  activate s
-  s->>s: Register Client [name]
-  s-)c: Connected
-  c->>c: Wait for server
-  deactivate c
-  s->>s: Wait for an another client
-  s-)c: Start [opponent-name]
-  activate c
-  c-)s: Select [selection]
-  s->>s: Wait for another client's selection
-  s->>s: Resolve result
-  s-)c: Result [opponent-selection]
-  deactivate c
-  deactivate s
-```
-
 ## Messages
 
 This section contains a description about the message types between the client and the server.
@@ -73,3 +46,30 @@ This section contains a description about the message types between the client a
 | START   | server | opponent's name | Server formed a game session with two clients.       |
 | SELECT  | client | round selection | Player has made a rock, paper or scissors selection. |
 | RESULT  | server | round results   | Server has resolved game session result.             |
+
+## Game Sequence
+
+This section describes how the gaming sequence works.
+
+```mermaid
+sequenceDiagram
+  participant c as Client
+  participant s as Server
+
+  activate c
+  c->>s: JOIN
+  activate s
+  s->>s: Register Player
+  s-)c: 
+  c->>c: Wait for server
+  deactivate c
+  s->>s: Wait for an another player
+  s-)c: START
+  activate c
+  c-)s: SELECT
+  s->>s: Wait for another player's selection
+  s->>s: Resolve result
+  s-)c: RESULT
+  deactivate c
+  deactivate s
+```
