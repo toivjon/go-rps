@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"net"
+	"os"
 
 	"github.com/toivjon/go-rps/internal/com"
 )
@@ -48,8 +50,23 @@ func start(port uint, host, name string) error {
 	}
 	log.Printf("starting the game: %+v", startContent)
 
-	// ... get input from keyboard input.
-	// ... wait for result.
+	log.Println("Enter selection ('r', 'p', 's')")
+	scanner := bufio.NewScanner(os.Stdin)
+	if !scanner.Scan() {
+		return fmt.Errorf("failed to scan user input. %w", err)
+	}
+	input := scanner.Text()
+
+	if err := sendSelect(conn, input); err != nil {
+		return err
+	}
+
+	log.Println("Waiting for game result. Please wait...")
+	resultContent, err := readResult(conn)
+	if err != nil {
+		return err
+	}
+	log.Printf("Result: %+v", resultContent)
 
 	return nil
 }
@@ -73,6 +90,29 @@ func readStart(reader io.Reader) (com.StartContent, error) {
 	content := com.StartContent{OpponentName: ""}
 	if err := json.Unmarshal(message.Content, &content); err != nil {
 		return com.StartContent{}, fmt.Errorf("failed to read START content. %w", err)
+	}
+	return content, nil
+}
+
+func sendSelect(writer io.Writer, selection string) error {
+	content, err := json.Marshal(com.SelectContent{Selection: selection})
+	if err != nil {
+		return fmt.Errorf("failed to marshal SELECT content into JSON. %w", err)
+	}
+	if err := com.Write(writer, com.Message{Type: com.TypeSelect, Content: content}); err != nil {
+		return fmt.Errorf("failed to write SELECT message to connection. %w", err)
+	}
+	return nil
+}
+
+func readResult(reader io.Reader) (com.ResultContent, error) {
+	message, err := com.Read[com.Message](reader)
+	if err != nil {
+		return com.ResultContent{}, fmt.Errorf("failed to read RESULT message. %w", err)
+	}
+	content := com.ResultContent{OpponentSelection: "", Result: ""}
+	if err := json.Unmarshal(message.Content, &content); err != nil {
+		return com.ResultContent{}, fmt.Errorf("failed to read RESULT content. %w", err)
 	}
 	return content, nil
 }

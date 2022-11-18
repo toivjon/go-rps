@@ -4,6 +4,8 @@ import "net"
 
 // Player represents a player client with a connection and a name.
 type Player struct {
-	Conn net.Conn
-	Name string
+	Conn      net.Conn
+	Name      string
+	Selection chan string
+	Finished  chan struct{}
 }

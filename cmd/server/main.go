@@ -47,7 +47,7 @@ func start(port uint, host string) error {
 	for {
 		select {
 		case conn := <-accept:
-			conns[conn] = &server.Player{Conn: conn, Name: ""}
+			conns[conn] = &server.Player{Conn: conn, Name: "", Selection: make(chan string), Finished: make(chan struct{})}
 			log.Printf("Connection %v added (conns: %d)", conn, len(conns))
 			go processConnection(conn, disconnect, conns[conn], join)
 		case player := <-join:
@@ -94,14 +94,14 @@ func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *server
 	player.Name = joinContent.Name
 	join <- player
 
-	for {
-		_, err = com.Read[com.Message](conn)
-		if err != nil {
-			log.Printf("Failed to read data: %s", err)
-			disconnect <- conn
-			return
-		}
+	selection, err := readSelect(conn)
+	if err != nil {
+		disconnect <- conn
+		return
 	}
+	log.Printf("Received player selection: %s", selection.Selection)
+	player.Selection <- selection.Selection
+	<-player.Finished
 }
 
 func readJoin(conn net.Conn) (com.JoinContent, error) {
@@ -127,6 +127,29 @@ func sendStart(writer io.Writer, opponentName string) error {
 	return nil
 }
 
+func readSelect(conn net.Conn) (com.SelectContent, error) {
+	message, err := com.Read[com.Message](conn)
+	if err != nil {
+		return com.SelectContent{}, fmt.Errorf("failed to read SELECT message. %w", err)
+	}
+	content := com.SelectContent{Selection: ""}
+	if err := json.Unmarshal(message.Content, &content); err != nil {
+		return com.SelectContent{}, fmt.Errorf("failed to read SELECT content. %w", err)
+	}
+	return content, nil
+}
+
+func sendResult(writer io.Writer, opponentSelection string, result string) error {
+	content, err := json.Marshal(com.ResultContent{OpponentSelection: opponentSelection, Result: result})
+	if err != nil {
+		return fmt.Errorf("failed to marshal RESULT content into JSON. %w", err)
+	}
+	if err := com.Write(writer, com.Message{Type: com.TypeResult, Content: content}); err != nil {
+		return fmt.Errorf("failed to write RESULT message to connection. %w", err)
+	}
+	return nil
+}
+
 func enterMatchmaker(matchmaker map[net.Conn]*server.Player, player *server.Player) {
 	if len(matchmaker) > 0 {
 		for opponentConn, opponent := range matchmaker {
@@ -137,6 +160,25 @@ func enterMatchmaker(matchmaker map[net.Conn]*server.Player, player *server.Play
 			if err := sendStart(opponentConn, player.Name); err != nil {
 				log.Panicln(err)
 			}
+			go func(player, opponent *server.Player) {
+				selection1 := ""
+				selection2 := ""
+				for selection1 == "" || selection2 == "" {
+					select {
+					case selection := <-player.Selection:
+						selection1 = selection
+					case selection := <-opponent.Selection:
+						selection2 = selection
+					}
+				}
+				// ... resolve results
+				result := "DRAW"
+				log.Printf("Session %q and %q result: %s", player.Name, opponent.Name, result)
+				sendResult(player.Conn, selection2, result)
+				sendResult(opponent.Conn, selection1, result)
+				player.Finished <- struct{}{}
+				opponent.Finished <- struct{}{}
+			}(player, opponent)
 			log.Printf("Sent start message to %v and %v", player.Conn, opponent.Conn)
 			return
 		}
