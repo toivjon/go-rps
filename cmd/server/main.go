@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"net"
 
@@ -41,7 +42,7 @@ func start(port uint, host string) error {
 
 	conns := make(map[net.Conn]*server.Player)
 
-	matchmaker := make(map[net.Conn]bool)
+	matchmaker := make(map[net.Conn]*server.Player)
 
 	for {
 		select {
@@ -52,10 +53,10 @@ func start(port uint, host string) error {
 		case player := <-join:
 			conns[player.Conn].Name = player.Name
 			log.Printf("Player %q joined.", player.Name)
-			enterMatchmaker(matchmaker, *player)
+			enterMatchmaker(matchmaker, player)
 		case conn := <-disconnect:
 			if player, found := conns[conn]; found {
-				leaveMatchmaker(matchmaker, *player)
+				leaveMatchmaker(matchmaker, player)
 				log.Printf("Player %q left.", conns[conn].Name)
 				delete(conns, conn)
 				log.Printf("Connection %v removed (conns: %d)", conn, len(conns))
@@ -85,28 +86,12 @@ func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *server
 		conn.Close()
 	}()
 
-	input, err := com.Read[com.Message](conn)
+	joinContent, err := readJoin(conn)
 	if err != nil {
-		log.Printf("Failed to read data: %s", err)
 		disconnect <- conn
 		return
 	}
-
-	content := new(com.ConnectContent)
-	if err := json.Unmarshal(input.Content, content); err != nil {
-		log.Printf("Failed to unmarshal message content. %v", err)
-		disconnect <- conn
-	}
-
-	player.Name = content.Name
-
-	log.Printf("Read message: %+v content: %+v", input, content)
-
-	if err := com.WriteConnected(conn); err != nil {
-		log.Printf("Failed to write data: %s", err)
-		return
-	}
-
+	player.Name = joinContent.Name
 	join <- player
 
 	for {
@@ -119,17 +104,49 @@ func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *server
 	}
 }
 
-func enterMatchmaker(matchmaker map[net.Conn]bool, player server.Player) {
+func readJoin(conn net.Conn) (com.JoinContent, error) {
+	message, err := com.Read[com.Message](conn)
+	if err != nil {
+		return com.JoinContent{}, fmt.Errorf("failed to read JOIN message. %w", err)
+	}
+	content := com.JoinContent{Name: ""}
+	if err := json.Unmarshal(message.Content, &content); err != nil {
+		return com.JoinContent{}, fmt.Errorf("failed to read JOIN content. %w", err)
+	}
+	return content, nil
+}
+
+func sendStart(writer io.Writer, opponentName string) error {
+	content, err := json.Marshal(com.StartContent{OpponentName: opponentName})
+	if err != nil {
+		return fmt.Errorf("failed to marshal START content into JSON. %w", err)
+	}
+	if err := com.Write(writer, com.Message{Type: com.TypeStart, Content: content}); err != nil {
+		return fmt.Errorf("failed to write START message to connection. %w", err)
+	}
+	return nil
+}
+
+func enterMatchmaker(matchmaker map[net.Conn]*server.Player, player *server.Player) {
 	if len(matchmaker) > 0 {
-		// ... match found! start a game session.
-		log.Printf("Matchmaker found an opponent. Let the game begin!")
+		for opponentConn, opponent := range matchmaker {
+			log.Printf("Starting session %q vs %q", player.Name, opponent.Name)
+			if err := sendStart(player.Conn, opponent.Name); err != nil {
+				log.Panicln(err)
+			}
+			if err := sendStart(opponentConn, player.Name); err != nil {
+				log.Panicln(err)
+			}
+			log.Printf("Sent start message to %v and %v", player.Conn, opponent.Conn)
+			return
+		}
 	} else {
-		matchmaker[player.Conn] = true
+		matchmaker[player.Conn] = player
 		log.Printf("Player %q joined matchmaker.", player.Name)
 	}
 }
 
-func leaveMatchmaker(matchmaker map[net.Conn]bool, player server.Player) {
+func leaveMatchmaker(matchmaker map[net.Conn]*server.Player, player *server.Player) {
 	delete(matchmaker, player.Conn)
 	log.Printf("Player %q left matchmaker.", player.Name)
 }

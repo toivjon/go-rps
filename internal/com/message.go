@@ -6,17 +6,35 @@ import "encoding/json"
 type MessageType string
 
 const (
-	MessageTypeConnect   MessageType = "CONNECT"   // Connection is being opened.
-	MessageTypeConnected MessageType = "CONNECTED" // Connection was opened.
+	TypeJoin   MessageType = "JOIN"   // Client wants to join server.
+	TypeStart  MessageType = "START"  // Server starts a game session.
+	TypeSelect MessageType = "SELECT" // Client decides an in-game decision.
+	TypeResult MessageType = "RESULT" // Server resolves game session round result.
 )
 
 // Message is base structure for each message being sent between the nodes.
 type Message struct {
 	Type    MessageType     `json:"type"`
-	Content json.RawMessage `json:"content,omitempty"`
+	Content json.RawMessage `json:"content"`
 }
 
-// ConnectContent contains the content payload for the CONNECT message.
-type ConnectContent struct {
-	Name string `json:"name"`
+// JoinContent contains the content of a JOIN message.
+type JoinContent struct {
+	Name string
+}
+
+// StartContent contains the content of a START message.
+type StartContent struct {
+	OpponentName string
+}
+
+// SelectContent contains the content of a SELECT message.
+type SelectContent struct {
+	Selection string
+}
+
+// ResultContent contains the content of a RESULT message.
+type ResultContent struct {
+	OpponentSelection string
+	Result            string
 }

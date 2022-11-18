@@ -42,42 +42,6 @@ func TestWrite(t *testing.T) {
 	})
 }
 
-func TestWriteConnect(t *testing.T) {
-	t.Parallel()
-	t.Run("ReturnsErrorWhenWriterFails", func(t *testing.T) {
-		t.Parallel()
-		writer := &writerMock{n: 0, err: errMock}
-		if err := com.WriteConnect(writer, com.ConnectContent{Name: "test"}); err == nil {
-			t.Fatalf("Expected an error, but nil was returned!")
-		}
-	})
-	t.Run("ReturnsNilWhenSuccess", func(t *testing.T) {
-		t.Parallel()
-		writer := &writerMock{n: 0, err: nil}
-		if err := com.WriteConnect(writer, com.ConnectContent{Name: "test"}); err != nil {
-			t.Fatalf("Expected no error, but error was returned: %s", err)
-		}
-	})
-}
-
-func TestWriteConnected(t *testing.T) {
-	t.Parallel()
-	t.Run("ReturnsErrorWhenWriterFails", func(t *testing.T) {
-		t.Parallel()
-		writer := &writerMock{n: 0, err: errMock}
-		if err := com.WriteConnected(writer); err == nil {
-			t.Fatalf("Expected an error, but nil was returned!")
-		}
-	})
-	t.Run("ReturnsNilWhenSuccess", func(t *testing.T) {
-		t.Parallel()
-		writer := &writerMock{n: 0, err: nil}
-		if err := com.WriteConnected(writer); err != nil {
-			t.Fatalf("Expected no error, but error was returned: %s", err)
-		}
-	})
-}
-
 type readerMock struct {
 	n   int
 	err error
