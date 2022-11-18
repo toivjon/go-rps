@@ -152,39 +152,47 @@ func sendResult(writer io.Writer, opponentSelection string, result string) error
 
 func enterMatchmaker(matchmaker map[net.Conn]*server.Player, player *server.Player) {
 	if len(matchmaker) > 0 {
-		for opponentConn, opponent := range matchmaker {
-			log.Printf("Starting session %q vs %q", player.Name, opponent.Name)
-			if err := sendStart(player.Conn, opponent.Name); err != nil {
-				log.Panicln(err)
-			}
-			if err := sendStart(opponentConn, player.Name); err != nil {
-				log.Panicln(err)
-			}
-			go func(player, opponent *server.Player) {
-				selection1 := ""
-				selection2 := ""
-				for selection1 == "" || selection2 == "" {
-					select {
-					case selection := <-player.Selection:
-						selection1 = selection
-					case selection := <-opponent.Selection:
-						selection2 = selection
-					}
-				}
-				// ... resolve results
-				result := "DRAW"
-				log.Printf("Session %q and %q result: %s", player.Name, opponent.Name, result)
-				sendResult(player.Conn, selection2, result)
-				sendResult(opponent.Conn, selection1, result)
-				player.Finished <- struct{}{}
-				opponent.Finished <- struct{}{}
-			}(player, opponent)
-			log.Printf("Sent start message to %v and %v", player.Conn, opponent.Conn)
-			return
-		}
+		runSession(matchmaker, player)
 	} else {
 		matchmaker[player.Conn] = player
 		log.Printf("Player %q joined matchmaker.", player.Name)
+	}
+}
+
+func runSession(matchmaker map[net.Conn]*server.Player, player *server.Player) {
+	for opponentConn, opponent := range matchmaker {
+		log.Printf("Starting session %q vs %q", player.Name, opponent.Name)
+		if err := sendStart(player.Conn, opponent.Name); err != nil {
+			log.Panicln(err)
+		}
+		if err := sendStart(opponentConn, player.Name); err != nil {
+			log.Panicln(err)
+		}
+		go func(player, opponent *server.Player) {
+			selection1 := ""
+			selection2 := ""
+			for selection1 == "" || selection2 == "" {
+				select {
+				case selection := <-player.Selection:
+					selection1 = selection
+				case selection := <-opponent.Selection:
+					selection2 = selection
+				}
+			}
+			// ... resolve results
+			result := "DRAW"
+			log.Printf("Session %q and %q result: %s", player.Name, opponent.Name, result)
+			if err := sendResult(player.Conn, selection2, result); err != nil {
+				log.Fatalf("Failed to send result. %s", err)
+			}
+			if err := sendResult(opponent.Conn, selection1, result); err != nil {
+				log.Fatalf("Failed to send result. %s", err)
+			}
+			player.Finished <- struct{}{}
+			opponent.Finished <- struct{}{}
+		}(player, opponent)
+		log.Printf("Sent start message to %v and %v", player.Conn, opponent.Conn)
+		return
 	}
 }
 
