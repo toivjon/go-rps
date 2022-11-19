@@ -50,24 +50,33 @@ func start(port uint, host, name string) error {
 	}
 	log.Printf("starting the game: %+v", startContent)
 
-	log.Println("Enter selection ('r', 'p', 's')")
-	scanner := bufio.NewScanner(os.Stdin)
-	if !scanner.Scan() {
-		return fmt.Errorf("failed to scan user input. %w", err)
-	}
-	input := scanner.Text()
+	gameOver := false
+	for !gameOver {
+		log.Println("Enter selection ('r', 'p', 's')")
+		scanner := bufio.NewScanner(os.Stdin)
+		if !scanner.Scan() {
+			return fmt.Errorf("failed to scan user input. %w", err)
+		}
+		input := scanner.Text()
 
-	if err := sendSelect(conn, input); err != nil {
-		return err
-	}
+		if err := sendSelect(conn, input); err != nil {
+			return err
+		}
 
-	log.Println("Waiting for game result. Please wait...")
-	resultContent, err := readResult(conn)
-	if err != nil {
-		return err
-	}
-	log.Printf("Result: %+v", resultContent)
+		log.Println("Waiting for game result. Please wait...")
+		resultContent, err := readResult(conn)
+		if err != nil {
+			return err
+		}
+		log.Printf("Result: %+v", resultContent)
 
+		if resultContent.Result != "DRAW" {
+			gameOver = true
+		} else {
+			log.Printf("Round ended in a draw. Let's have an another round...")
+		}
+	}
+	log.Printf("Game over.")
 	return nil
 }
 

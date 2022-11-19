@@ -94,14 +94,31 @@ func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *server
 	player.Name = joinContent.Name
 	join <- player
 
-	selection, err := readSelect(conn)
-	if err != nil {
-		disconnect <- conn
-		return
+	reader := func() chan string {
+		outbox := make(chan string)
+		go func() {
+			for {
+				selection, err := readSelect(conn)
+				if err != nil {
+					disconnect <- conn
+					return
+				}
+				outbox <- selection.Selection
+			}
+		}()
+		return outbox
+	}()
+
+	for {
+		log.Printf("Waiting for player %q selection or finished signal...", player.Name)
+		select {
+		case selection := <-reader:
+			log.Printf("Received player %q selection: %s", player.Name, selection)
+			player.Selection <- selection
+		case <-player.Finished:
+			return
+		}
 	}
-	log.Printf("Received player selection: %s", selection.Selection)
-	player.Selection <- selection.Selection
-	<-player.Finished
 }
 
 func readJoin(conn net.Conn) (com.JoinContent, error) {
@@ -168,32 +185,37 @@ func runSession(matchmaker map[net.Conn]*server.Player, player *server.Player) {
 		if err := sendStart(opponentConn, player.Name); err != nil {
 			log.Panicln(err)
 		}
-		go func(player, opponent *server.Player) {
-			selection1 := ""
-			selection2 := ""
-			for selection1 == "" || selection2 == "" {
-				select {
-				case selection := <-player.Selection:
-					selection1 = selection
-				case selection := <-opponent.Selection:
-					selection2 = selection
-				}
-			}
-			// ... resolve results
-			result := "DRAW"
-			log.Printf("Session %q and %q result: %s", player.Name, opponent.Name, result)
-			if err := sendResult(player.Conn, selection2, result); err != nil {
-				log.Fatalf("Failed to send result. %s", err)
-			}
-			if err := sendResult(opponent.Conn, selection1, result); err != nil {
-				log.Fatalf("Failed to send result. %s", err)
-			}
-			player.Finished <- struct{}{}
-			opponent.Finished <- struct{}{}
-		}(player, opponent)
+		go runRound(player, opponent)
 		log.Printf("Sent start message to %v and %v", player.Conn, opponent.Conn)
 		return
 	}
+}
+
+func runRound(player, opponent *server.Player) {
+	result := "DRAW"
+	for result == "DRAW" {
+		log.Printf("Starting a new round. Waiting for player selections...")
+		selection1 := ""
+		selection2 := ""
+		for selection1 == "" || selection2 == "" {
+			select {
+			case selection := <-player.Selection:
+				selection1 = selection
+			case selection := <-opponent.Selection:
+				selection2 = selection
+			}
+		}
+		// ... resolve results and assign to result variable.
+		log.Printf("Session %q and %q result: %s", player.Name, opponent.Name, result)
+		if err := sendResult(player.Conn, selection2, result); err != nil {
+			log.Fatalf("Failed to send result. %s", err)
+		}
+		if err := sendResult(opponent.Conn, selection1, result); err != nil {
+			log.Fatalf("Failed to send result. %s", err)
+		}
+	}
+	player.Finished <- struct{}{}
+	opponent.Finished <- struct{}{}
 }
 
 func leaveMatchmaker(matchmaker map[net.Conn]*server.Player, player *server.Player) {
