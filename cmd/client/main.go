@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"github.com/toivjon/go-rps/internal/com"
+	"github.com/toivjon/go-rps/internal/game"
 )
 
 const (
@@ -59,7 +60,12 @@ func start(port uint, host, name string) error {
 		}
 		input := scanner.Text()
 
-		if err := sendSelect(conn, input); err != nil {
+		selection := game.Selection(input)
+		if err := game.ValidateSelection(selection); err != nil {
+			return fmt.Errorf("failed to validate user input. %w", err)
+		}
+
+		if err := sendSelect(conn, selection); err != nil {
 			return err
 		}
 
@@ -103,7 +109,7 @@ func readStart(reader io.Reader) (com.StartContent, error) {
 	return content, nil
 }
 
-func sendSelect(writer io.Writer, selection string) error {
+func sendSelect(writer io.Writer, selection game.Selection) error {
 	content, err := json.Marshal(com.SelectContent{Selection: selection})
 	if err != nil {
 		return fmt.Errorf("failed to marshal SELECT content into JSON. %w", err)

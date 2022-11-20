@@ -9,6 +9,7 @@ import (
 	"net"
 
 	"github.com/toivjon/go-rps/internal/com"
+	"github.com/toivjon/go-rps/internal/game"
 	"github.com/toivjon/go-rps/internal/server"
 )
 
@@ -47,7 +48,12 @@ func start(port uint, host string) error {
 	for {
 		select {
 		case conn := <-accept:
-			conns[conn] = &server.Player{Conn: conn, Name: "", Selection: make(chan string), Finished: make(chan struct{})}
+			conns[conn] = &server.Player{
+				Conn:      conn,
+				Name:      "",
+				Selection: make(chan game.Selection),
+				Finished:  make(chan struct{}),
+			}
 			log.Printf("Connection %v added (conns: %d)", conn, len(conns))
 			go processConnection(conn, disconnect, conns[conn], join)
 		case player := <-join:
@@ -94,8 +100,8 @@ func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *server
 	player.Name = joinContent.Name
 	join <- player
 
-	reader := func() chan string {
-		outbox := make(chan string)
+	reader := func() chan game.Selection {
+		outbox := make(chan game.Selection)
 		go func() {
 			for {
 				selection, err := readSelect(conn)
@@ -156,7 +162,7 @@ func readSelect(conn net.Conn) (com.SelectContent, error) {
 	return content, nil
 }
 
-func sendResult(writer io.Writer, opponentSelection string, result string) error {
+func sendResult(writer io.Writer, opponentSelection game.Selection, result string) error {
 	content, err := json.Marshal(com.ResultContent{OpponentSelection: opponentSelection, Result: result})
 	if err != nil {
 		return fmt.Errorf("failed to marshal RESULT content into JSON. %w", err)
@@ -195,9 +201,9 @@ func runRound(player, opponent *server.Player) {
 	result := "DRAW"
 	for result == "DRAW" {
 		log.Printf("Starting a new round. Waiting for player selections...")
-		selection1 := ""
-		selection2 := ""
-		for selection1 == "" || selection2 == "" {
+		selection1 := game.SelectionNone
+		selection2 := game.SelectionNone
+		for selection1 == game.SelectionNone || selection2 == game.SelectionNone {
 			select {
 			case selection := <-player.Selection:
 				selection1 = selection

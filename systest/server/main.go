@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/toivjon/go-rps/internal/com"
+	"github.com/toivjon/go-rps/internal/game"
 )
 
 const (
@@ -119,7 +120,7 @@ func assertOpponentName(start com.StartContent, expected string) {
 }
 
 //nolint:unparam // Remove this after the real game logic has been implemented!
-func assertResult(result com.ResultContent, expectedOpponentSelection, expectedResult string) {
+func assertResult(result com.ResultContent, expectedOpponentSelection game.Selection, expectedResult string) {
 	if result.OpponentSelection != expectedOpponentSelection {
 		log.Panicf("Invalid opponent selection. Expected: %q Was: %q",
 			expectedOpponentSelection,
@@ -180,7 +181,7 @@ func readStart(reader io.Reader) com.StartContent {
 	return content
 }
 
-func sendSelect(writer io.Writer, selection string) {
+func sendSelect(writer io.Writer, selection game.Selection) {
 	content, err := json.Marshal(com.SelectContent{Selection: selection})
 	if err != nil {
 		log.Panicf("failed to marshal SELECT content into JSON. %s", err)

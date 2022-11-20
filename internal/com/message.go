@@ -1,6 +1,10 @@
 package com
 
-import "encoding/json"
+import (
+	"encoding/json"
+
+	"github.com/toivjon/go-rps/internal/game"
+)
 
 // MessageType specifies the type of the network message.
 type MessageType string
@@ -30,11 +34,11 @@ type StartContent struct {
 
 // SelectContent contains the content of a SELECT message.
 type SelectContent struct {
-	Selection string
+	Selection game.Selection
 }
 
 // ResultContent contains the content of a RESULT message.
 type ResultContent struct {
-	OpponentSelection string
+	OpponentSelection game.Selection
 	Result            string
 }
