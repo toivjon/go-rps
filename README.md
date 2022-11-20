@@ -36,6 +36,15 @@ Use the following scripts to run unit tests for the application.
 
 These scripts will also check that code coverage is within the threshold.
 
+## System Test
+
+Use the following scripts to run system tests for the application.
+
+| OS      | Script                    |
+| ------- | ------------------------- |
+| Windows | ./scripts/system-test.bat |
+| Linux   | ./scripts/system-test.sh  |
+
 ## Messages
 
 This section contains a description about the message types between the client and the server.
