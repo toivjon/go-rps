@@ -132,7 +132,7 @@ func assertResult(result com.ResultContent, expectedOpponentSelection, expectedR
 }
 
 func startServer() *exec.Cmd {
-	cmd := exec.Command("./bin/server.exe")
+	cmd := exec.Command("./bin/server")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
