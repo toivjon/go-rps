@@ -5,6 +5,9 @@ set rootpath=%~dp0%
 set rootpath=%rootpath:~0,-9%
 cd %rootpath%
 
+:: Build the binaries to get the latest version of the applications.
+call ./scripts/build.bat || exit /B 1
+
 :: Run the system tests.
 echo Running system tests. Please wait...
 go run ./systest/client || exit /B 1
