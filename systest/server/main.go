@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"time"
 
 	"github.com/toivjon/go-rps/internal/com"
 )
@@ -31,6 +32,7 @@ func testPlaySessionWithOneRound() {
 	log.Println("Test Play Session With One Round")
 	server := startServer()
 	defer closeServer(server)
+	time.Sleep(time.Second)
 
 	client1 := newClient()
 	defer client1.Close()
@@ -58,6 +60,7 @@ func testPlaySessionWithManyRounds() {
 	log.Println("Test Play Session With Many Rounds")
 	server := startServer()
 	defer closeServer(server)
+	time.Sleep(time.Second)
 
 	client1 := newClient()
 	defer client1.Close()
