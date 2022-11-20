@@ -48,13 +48,13 @@ func testPlaySessionWithOneRound() {
 	assertOpponentName(start1, name2)
 	assertOpponentName(start2, name1)
 
-	sendSelect(client1, "r")
-	sendSelect(client2, "p")
+	sendSelect(client1, game.SelectionRock)
+	sendSelect(client2, game.SelectionPaper)
 
 	result1 := readResult(client1)
 	result2 := readResult(client2)
-	assertResult(result1, "p", "DRAW") // ... Non-DRAW is not yet supported.
-	assertResult(result2, "r", "DRAW") // ... Non-DRAW is not yet supported.
+	assertResult(result1, game.SelectionPaper, "DRAW") // ... Non-DRAW is not yet supported.
+	assertResult(result2, game.SelectionRock, "DRAW")  // ... Non-DRAW is not yet supported.
 }
 
 func testPlaySessionWithManyRounds() {
@@ -76,33 +76,33 @@ func testPlaySessionWithManyRounds() {
 	assertOpponentName(start1, name2)
 	assertOpponentName(start2, name1)
 
-	sendSelect(client1, "r")
-	sendSelect(client2, "r")
+	sendSelect(client1, game.SelectionRock)
+	sendSelect(client2, game.SelectionRock)
 	result1 := readResult(client1)
 	result2 := readResult(client2)
-	assertResult(result1, "r", "DRAW")
-	assertResult(result2, "r", "DRAW")
+	assertResult(result1, game.SelectionRock, "DRAW")
+	assertResult(result2, game.SelectionRock, "DRAW")
 
-	sendSelect(client1, "p")
-	sendSelect(client2, "p")
+	sendSelect(client1, game.SelectionPaper)
+	sendSelect(client2, game.SelectionPaper)
 	result1 = readResult(client1)
 	result2 = readResult(client2)
-	assertResult(result1, "p", "DRAW")
-	assertResult(result2, "p", "DRAW")
+	assertResult(result1, game.SelectionPaper, "DRAW")
+	assertResult(result2, game.SelectionPaper, "DRAW")
 
-	sendSelect(client1, "s")
-	sendSelect(client2, "s")
+	sendSelect(client1, game.SelectionScissors)
+	sendSelect(client2, game.SelectionScissors)
 	result1 = readResult(client1)
 	result2 = readResult(client2)
-	assertResult(result1, "s", "DRAW")
-	assertResult(result2, "s", "DRAW")
+	assertResult(result1, game.SelectionScissors, "DRAW")
+	assertResult(result2, game.SelectionScissors, "DRAW")
 
-	sendSelect(client1, "s")
-	sendSelect(client2, "p")
+	sendSelect(client1, game.SelectionScissors)
+	sendSelect(client2, game.SelectionPaper)
 	result1 = readResult(client1)
 	result2 = readResult(client2)
-	assertResult(result1, "p", "DRAW") // ... Non-DRAW is not yet supported.
-	assertResult(result2, "s", "DRAW") // ... Non-DRAW is not yet supported.
+	assertResult(result1, game.SelectionPaper, "DRAW")    // ... Non-DRAW is not yet supported.
+	assertResult(result2, game.SelectionScissors, "DRAW") // ... Non-DRAW is not yet supported.
 }
 
 func testPlayManySessionsConcurrently() {
