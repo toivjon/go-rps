@@ -76,7 +76,7 @@ func start(port uint, host, name string) error {
 		}
 		log.Printf("Result: %+v", resultContent)
 
-		if resultContent.Result != "DRAW" {
+		if resultContent.Result != game.ResultDraw {
 			gameOver = true
 		} else {
 			log.Printf("Round ended in a draw. Let's have an another round...")

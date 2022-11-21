@@ -162,7 +162,7 @@ func readSelect(conn net.Conn) (com.SelectContent, error) {
 	return content, nil
 }
 
-func sendResult(writer io.Writer, opponentSelection game.Selection, result string) error {
+func sendResult(writer io.Writer, opponentSelection game.Selection, result game.Result) error {
 	content, err := json.Marshal(com.ResultContent{OpponentSelection: opponentSelection, Result: result})
 	if err != nil {
 		return fmt.Errorf("failed to marshal RESULT content into JSON. %w", err)
@@ -197,9 +197,15 @@ func runSession(matchmaker map[net.Conn]*server.Player, player *server.Player) {
 	}
 }
 
+const (
+	ResultDraw       = 0
+	ResultPlayer1Win = 1
+	ResultPlayer2Win = 2
+)
+
 func runRound(player, opponent *server.Player) {
-	result := "DRAW"
-	for result == "DRAW" {
+	result := ResultDraw
+	for result == ResultDraw {
 		log.Printf("Starting a new round. Waiting for player selections...")
 		selection1 := game.SelectionNone
 		selection2 := game.SelectionNone
@@ -211,14 +217,7 @@ func runRound(player, opponent *server.Player) {
 				selection2 = selection
 			}
 		}
-		// ... resolve results and assign to result variable.
-		log.Printf("Session %q and %q result: %s", player.Name, opponent.Name, result)
-		if err := sendResult(player.Conn, selection2, result); err != nil {
-			log.Fatalf("Failed to send result. %s", err)
-		}
-		if err := sendResult(opponent.Conn, selection1, result); err != nil {
-			log.Fatalf("Failed to send result. %s", err)
-		}
+		result = handleResult(selection1, selection2, player, opponent)
 	}
 	player.Finished <- struct{}{}
 	opponent.Finished <- struct{}{}
@@ -227,4 +226,46 @@ func runRound(player, opponent *server.Player) {
 func leaveMatchmaker(matchmaker map[net.Conn]*server.Player, player *server.Player) {
 	delete(matchmaker, player.Conn)
 	log.Printf("Player %q left matchmaker.", player.Name)
+}
+
+func resolveResult(player1, player2 game.Selection) int {
+	switch {
+	case player1 == player2:
+		return ResultDraw
+	case player1 == game.SelectionPaper && player2 == game.SelectionScissors:
+		return ResultPlayer2Win
+	case player1 == game.SelectionRock && player2 == game.SelectionPaper:
+		return ResultPlayer2Win
+	case player1 == game.SelectionScissors && player2 == game.SelectionRock:
+		return ResultPlayer2Win
+	default:
+		return ResultPlayer1Win
+	}
+}
+
+func handleResult(selection1, selection2 game.Selection, player, opponent *server.Player) int {
+	result := resolveResult(selection1, selection2)
+	log.Printf("Session %q and %q result: %d", player.Name, opponent.Name, result)
+	var result1 game.Result
+	var result2 game.Result
+	switch result {
+	case ResultDraw:
+		result1 = game.ResultDraw
+		result2 = game.ResultDraw
+	case ResultPlayer1Win:
+		result1 = game.ResultWin
+		result2 = game.ResultLose
+	case ResultPlayer2Win:
+		result1 = game.ResultLose
+		result2 = game.ResultWin
+	default:
+		panic("invalid result!")
+	}
+	if err := sendResult(player.Conn, selection2, result1); err != nil {
+		log.Fatalf("Failed to send result. %s", err)
+	}
+	if err := sendResult(opponent.Conn, selection1, result2); err != nil {
+		log.Fatalf("Failed to send result. %s", err)
+	}
+	return result
 }

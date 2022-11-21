@@ -40,5 +40,5 @@ type SelectContent struct {
 // ResultContent contains the content of a RESULT message.
 type ResultContent struct {
 	OpponentSelection game.Selection
-	Result            string
+	Result            game.Result
 }

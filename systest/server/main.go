@@ -53,8 +53,8 @@ func testPlaySessionWithOneRound() {
 
 	result1 := readResult(client1)
 	result2 := readResult(client2)
-	assertResult(result1, game.SelectionPaper, "DRAW") // ... Non-DRAW is not yet supported.
-	assertResult(result2, game.SelectionRock, "DRAW")  // ... Non-DRAW is not yet supported.
+	assertResult(result1, game.SelectionPaper, game.ResultLose)
+	assertResult(result2, game.SelectionRock, game.ResultWin)
 }
 
 func testPlaySessionWithManyRounds() {
@@ -80,29 +80,29 @@ func testPlaySessionWithManyRounds() {
 	sendSelect(client2, game.SelectionRock)
 	result1 := readResult(client1)
 	result2 := readResult(client2)
-	assertResult(result1, game.SelectionRock, "DRAW")
-	assertResult(result2, game.SelectionRock, "DRAW")
+	assertResult(result1, game.SelectionRock, game.ResultDraw)
+	assertResult(result2, game.SelectionRock, game.ResultDraw)
 
 	sendSelect(client1, game.SelectionPaper)
 	sendSelect(client2, game.SelectionPaper)
 	result1 = readResult(client1)
 	result2 = readResult(client2)
-	assertResult(result1, game.SelectionPaper, "DRAW")
-	assertResult(result2, game.SelectionPaper, "DRAW")
+	assertResult(result1, game.SelectionPaper, game.ResultDraw)
+	assertResult(result2, game.SelectionPaper, game.ResultDraw)
 
 	sendSelect(client1, game.SelectionScissors)
 	sendSelect(client2, game.SelectionScissors)
 	result1 = readResult(client1)
 	result2 = readResult(client2)
-	assertResult(result1, game.SelectionScissors, "DRAW")
-	assertResult(result2, game.SelectionScissors, "DRAW")
+	assertResult(result1, game.SelectionScissors, game.ResultDraw)
+	assertResult(result2, game.SelectionScissors, game.ResultDraw)
 
 	sendSelect(client1, game.SelectionScissors)
 	sendSelect(client2, game.SelectionPaper)
 	result1 = readResult(client1)
 	result2 = readResult(client2)
-	assertResult(result1, game.SelectionPaper, "DRAW")    // ... Non-DRAW is not yet supported.
-	assertResult(result2, game.SelectionScissors, "DRAW") // ... Non-DRAW is not yet supported.
+	assertResult(result1, game.SelectionPaper, game.ResultWin)
+	assertResult(result2, game.SelectionScissors, game.ResultLose)
 }
 
 func testPlayManySessionsConcurrently() {
@@ -119,8 +119,7 @@ func assertOpponentName(start com.StartContent, expected string) {
 	}
 }
 
-//nolint:unparam // Remove this after the real game logic has been implemented!
-func assertResult(result com.ResultContent, expectedOpponentSelection game.Selection, expectedResult string) {
+func assertResult(result com.ResultContent, expectedOpponentSelection game.Selection, expectedResult game.Result) {
 	if result.OpponentSelection != expectedOpponentSelection {
 		log.Panicf("Invalid opponent selection. Expected: %q Was: %q",
 			expectedOpponentSelection,
