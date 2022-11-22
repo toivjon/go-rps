@@ -47,7 +47,9 @@ func testPlaySessionWithOneRound() {
 	joinContent := readJoin(conn)
 	assertName("anonymous", joinContent.Name)
 	sendStart(conn, "mickey")
-	input.Write([]byte("r\n"))
+	if _, err := input.Write([]byte("r\n")); err != nil {
+		log.Panicf("Failed to write data to client stdin. %s", err)
+	}
 	selection := readSelect(conn)
 	assertSelection(game.SelectionRock, selection.Selection)
 	sendResult(conn, game.SelectionPaper, game.ResultLose)
