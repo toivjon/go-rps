@@ -23,6 +23,7 @@ func main() {
 	log.Println("Running client system tests...")
 	testReturnErrorWhenConnectingFails()
 	testPlaySessionWithOneRound()
+	testPlaySessionWithManyRounds()
 }
 
 func testReturnErrorWhenConnectingFails() {
@@ -53,6 +54,52 @@ func testPlaySessionWithOneRound() {
 	selection := readSelect(conn)
 	assertSelection(game.SelectionRock, selection.Selection)
 	sendResult(conn, game.SelectionPaper, game.ResultLose)
+	if err := client.Wait(); err != nil {
+		log.Panicf("Unable to wait until client disconnects and closes. %s", err)
+	}
+}
+
+func testPlaySessionWithManyRounds() {
+	log.Println("Test that client logic works in a session with many rounds.")
+	server := startServer()
+	defer closeServer(server)
+
+	client, input := startClient()
+	defer closeClient(client)
+
+	conn := accept(server)
+	joinContent := readJoin(conn)
+	assertName("anonymous", joinContent.Name)
+	sendStart(conn, "mickey")
+
+	if _, err := input.Write([]byte("r\n")); err != nil {
+		log.Panicf("Failed to write data to client stdin. %s", err)
+	}
+	selection := readSelect(conn)
+	assertSelection(game.SelectionRock, selection.Selection)
+	sendResult(conn, game.SelectionRock, game.ResultDraw)
+
+	if _, err := input.Write([]byte("p\n")); err != nil {
+		log.Panicf("Failed to write data to client stdin. %s", err)
+	}
+	selection = readSelect(conn)
+	assertSelection(game.SelectionPaper, selection.Selection)
+	sendResult(conn, game.SelectionPaper, game.ResultDraw)
+
+	if _, err := input.Write([]byte("s\n")); err != nil {
+		log.Panicf("Failed to write data to client stdin. %s", err)
+	}
+	selection = readSelect(conn)
+	assertSelection(game.SelectionScissors, selection.Selection)
+	sendResult(conn, game.SelectionScissors, game.ResultDraw)
+
+	if _, err := input.Write([]byte("r\n")); err != nil {
+		log.Panicf("Failed to write data to client stdin. %s", err)
+	}
+	selection = readSelect(conn)
+	assertSelection(game.SelectionRock, selection.Selection)
+	sendResult(conn, game.SelectionScissors, game.ResultWin)
+
 	if err := client.Wait(); err != nil {
 		log.Panicf("Unable to wait until client disconnects and closes. %s", err)
 	}
