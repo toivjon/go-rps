@@ -41,6 +41,7 @@ func start(port uint, host, name string) error {
 	}
 	defer conn.Close()
 
+	log.Printf("Joining as player: %s", name)
 	if err := sendJoin(conn, name); err != nil {
 		return err
 	}
