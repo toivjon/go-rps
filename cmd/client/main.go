@@ -46,7 +46,7 @@ func start(port uint, host, name string) error {
 		return err
 	}
 
-	log.Printf("waiting for START message...")
+	log.Printf("Waiting for an opponent. Please stand by...")
 	startContent, err := readStart(conn)
 	if err != nil {
 		return err
