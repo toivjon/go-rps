@@ -45,6 +45,8 @@ func testPlaySessionWithOneRound() {
 	defer closeClient(client)
 
 	conn := accept(server)
+	defer conn.Close()
+
 	joinContent := mustRead[com.JoinContent](conn, com.TypeJoin)
 	assertName("anonymous", joinContent.Name)
 	mustSend(conn, com.TypeStart, com.StartContent{OpponentName: "mickey"})
@@ -67,6 +69,8 @@ func testPlaySessionWithManyRounds() {
 	defer closeClient(client)
 
 	conn := accept(server)
+	defer conn.Close()
+
 	joinContent := mustRead[com.JoinContent](conn, com.TypeJoin)
 	assertName("anonymous", joinContent.Name)
 	mustSend(conn, com.TypeStart, com.StartContent{OpponentName: "mickey"})
