@@ -110,7 +110,47 @@ func testPlayManySessionsConcurrently() {
 	server := startServer()
 	defer closeServer(server)
 
-	// ... Not yet supported.
+	client1 := newClient()
+	defer client1.Close()
+	client2 := newClient()
+	defer client2.Close()
+
+	sendJoin(client1, name1)
+	sendJoin(client2, name2)
+
+	start1 := readStart(client1)
+	start2 := readStart(client2)
+	assertOpponentName(start1, name2)
+	assertOpponentName(start2, name1)
+
+	client3 := newClient()
+	defer client3.Close()
+	client4 := newClient()
+	defer client4.Close()
+
+	sendJoin(client3, name1)
+	sendJoin(client4, name2)
+
+	start3 := readStart(client3)
+	start4 := readStart(client4)
+	assertOpponentName(start3, name2)
+	assertOpponentName(start4, name1)
+
+	sendSelect(client1, game.SelectionRock)
+	sendSelect(client2, game.SelectionPaper)
+	sendSelect(client3, game.SelectionRock)
+
+	result1 := readResult(client1)
+	result2 := readResult(client2)
+	assertResult(result1, game.SelectionPaper, game.ResultLose)
+	assertResult(result2, game.SelectionRock, game.ResultWin)
+
+	sendSelect(client4, game.SelectionPaper)
+
+	result3 := readResult(client3)
+	result4 := readResult(client4)
+	assertResult(result3, game.SelectionPaper, game.ResultLose)
+	assertResult(result4, game.SelectionRock, game.ResultWin)
 }
 
 func assertOpponentName(start com.StartContent, expected string) {

@@ -184,6 +184,7 @@ func enterMatchmaker(matchmaker map[net.Conn]*server.Player, player *server.Play
 
 func runSession(matchmaker map[net.Conn]*server.Player, player *server.Player) {
 	for opponentConn, opponent := range matchmaker {
+		delete(matchmaker, opponent.Conn)
 		log.Printf("Starting session %q vs %q", player.Name, opponent.Name)
 		if err := sendStart(player.Conn, opponent.Name); err != nil {
 			log.Panicln(err)
