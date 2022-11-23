@@ -26,7 +26,7 @@ func main() {
 	name := flag.String("name", defaultName, "The name of the player.")
 	flag.Parse()
 
-	log.Println("Starting RPS client...")
+	log.Println("Welcome to the RPS client")
 	if err := start(*port, *host, *name); err != nil {
 		log.Fatalf("Client was closed due an error: %v", err)
 	}
@@ -34,6 +34,7 @@ func main() {
 }
 
 func start(port uint, host, name string) error {
+	log.Printf("Connecting to the server: %s:%d", host, port)
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		return fmt.Errorf("failed to open TCP connection: %w", err)
