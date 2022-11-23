@@ -47,13 +47,13 @@ func testPlaySessionWithOneRound() {
 	conn := accept(server)
 	joinContent := readJoin(conn)
 	assertName("anonymous", joinContent.Name)
-	sendStart(conn, "mickey")
+	mustSend(conn, com.TypeStart, com.StartContent{OpponentName: "mickey"})
 	if _, err := input.Write([]byte("r\n")); err != nil {
 		log.Panicf("Failed to write data to client stdin. %s", err)
 	}
 	selection := readSelect(conn)
 	assertSelection(game.SelectionRock, selection.Selection)
-	sendResult(conn, game.SelectionPaper, game.ResultLose)
+	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionPaper, Result: game.ResultLose})
 	if err := client.Wait(); err != nil {
 		log.Panicf("Unable to wait until client disconnects and closes. %s", err)
 	}
@@ -70,35 +70,35 @@ func testPlaySessionWithManyRounds() {
 	conn := accept(server)
 	joinContent := readJoin(conn)
 	assertName("anonymous", joinContent.Name)
-	sendStart(conn, "mickey")
+	mustSend(conn, com.TypeStart, com.StartContent{OpponentName: "mickey"})
 
 	if _, err := input.Write([]byte("r\n")); err != nil {
 		log.Panicf("Failed to write data to client stdin. %s", err)
 	}
 	selection := readSelect(conn)
 	assertSelection(game.SelectionRock, selection.Selection)
-	sendResult(conn, game.SelectionRock, game.ResultDraw)
+	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionRock, Result: game.ResultDraw})
 
 	if _, err := input.Write([]byte("p\n")); err != nil {
 		log.Panicf("Failed to write data to client stdin. %s", err)
 	}
 	selection = readSelect(conn)
 	assertSelection(game.SelectionPaper, selection.Selection)
-	sendResult(conn, game.SelectionPaper, game.ResultDraw)
+	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionPaper, Result: game.ResultDraw})
 
 	if _, err := input.Write([]byte("s\n")); err != nil {
 		log.Panicf("Failed to write data to client stdin. %s", err)
 	}
 	selection = readSelect(conn)
 	assertSelection(game.SelectionScissors, selection.Selection)
-	sendResult(conn, game.SelectionScissors, game.ResultDraw)
+	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionScissors, Result: game.ResultDraw})
 
 	if _, err := input.Write([]byte("r\n")); err != nil {
 		log.Panicf("Failed to write data to client stdin. %s", err)
 	}
 	selection = readSelect(conn)
 	assertSelection(game.SelectionRock, selection.Selection)
-	sendResult(conn, game.SelectionScissors, game.ResultWin)
+	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionScissors, Result: game.ResultWin})
 
 	if err := client.Wait(); err != nil {
 		log.Panicf("Unable to wait until client disconnects and closes. %s", err)
@@ -191,16 +191,6 @@ func readJoin(conn net.Conn) com.JoinContent {
 	return content
 }
 
-func sendStart(writer io.Writer, opponentName string) {
-	content, err := json.Marshal(com.StartContent{OpponentName: opponentName})
-	if err != nil {
-		log.Panicf("Failed to marshal START content into JSON. %s", err)
-	}
-	if err := com.Write(writer, com.Message{Type: com.TypeStart, Content: content}); err != nil {
-		log.Panicf("Failed to write START message to connection. %s", err)
-	}
-}
-
 func readSelect(conn net.Conn) com.SelectContent {
 	message, err := com.Read[com.Message](conn)
 	if err != nil {
@@ -213,12 +203,13 @@ func readSelect(conn net.Conn) com.SelectContent {
 	return content
 }
 
-func sendResult(writer io.Writer, opponentSelection game.Selection, result game.Result) {
-	content, err := json.Marshal(com.ResultContent{OpponentSelection: opponentSelection, Result: result})
+func mustSend[T any](writer io.Writer, messageType com.MessageType, val T) {
+	content, err := json.Marshal(val)
 	if err != nil {
-		log.Panicf("Failed to marshal RESULT content into JSON. %s", err)
+		log.Panicf("Failed to marshal %s content into JSON. %s", messageType, err)
 	}
-	if err := com.Write(writer, com.Message{Type: com.TypeResult, Content: content}); err != nil {
-		log.Panicf("Failed to write RESULT message to connection. %s", err)
+	message := com.Message{Type: messageType, Content: content}
+	if err := com.Write(writer, message); err != nil {
+		log.Panicf("Failed to write %s message to connection. %s", messageType, err)
 	}
 }
