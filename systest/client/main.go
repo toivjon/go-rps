@@ -48,9 +48,7 @@ func testPlaySessionWithOneRound() {
 	joinContent := mustRead[com.JoinContent](conn, com.TypeJoin)
 	assertName("anonymous", joinContent.Name)
 	mustSend(conn, com.TypeStart, com.StartContent{OpponentName: "mickey"})
-	if _, err := input.Write([]byte("r\n")); err != nil {
-		log.Panicf("Failed to write data to client stdin. %s", err)
-	}
+	mustWrite(input, "r\n")
 	selection := mustRead[com.SelectContent](conn, com.TypeSelect)
 	assertSelection(game.SelectionRock, selection.Selection)
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionPaper, Result: game.ResultLose})
@@ -72,30 +70,22 @@ func testPlaySessionWithManyRounds() {
 	assertName("anonymous", joinContent.Name)
 	mustSend(conn, com.TypeStart, com.StartContent{OpponentName: "mickey"})
 
-	if _, err := input.Write([]byte("r\n")); err != nil {
-		log.Panicf("Failed to write data to client stdin. %s", err)
-	}
+	mustWrite(input, "r\n")
 	selection := mustRead[com.SelectContent](conn, com.TypeSelect)
 	assertSelection(game.SelectionRock, selection.Selection)
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionRock, Result: game.ResultDraw})
 
-	if _, err := input.Write([]byte("p\n")); err != nil {
-		log.Panicf("Failed to write data to client stdin. %s", err)
-	}
+	mustWrite(input, "p\n")
 	selection = mustRead[com.SelectContent](conn, com.TypeSelect)
 	assertSelection(game.SelectionPaper, selection.Selection)
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionPaper, Result: game.ResultDraw})
 
-	if _, err := input.Write([]byte("s\n")); err != nil {
-		log.Panicf("Failed to write data to client stdin. %s", err)
-	}
+	mustWrite(input, "s\n")
 	selection = mustRead[com.SelectContent](conn, com.TypeSelect)
 	assertSelection(game.SelectionScissors, selection.Selection)
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionScissors, Result: game.ResultDraw})
 
-	if _, err := input.Write([]byte("r\n")); err != nil {
-		log.Panicf("Failed to write data to client stdin. %s", err)
-	}
+	mustWrite(input, "r\n")
 	selection = mustRead[com.SelectContent](conn, com.TypeSelect)
 	assertSelection(game.SelectionRock, selection.Selection)
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionScissors, Result: game.ResultWin})
@@ -202,5 +192,11 @@ func mustSend[T any](writer io.Writer, messageType com.MessageType, val T) {
 	message := com.Message{Type: messageType, Content: content}
 	if err := com.Write(writer, message); err != nil {
 		log.Panicf("Failed to write %s message to connection. %s", messageType, err)
+	}
+}
+
+func mustWrite(writer io.Writer, val string) {
+	if _, err := writer.Write([]byte(val)); err != nil {
+		log.Panicf("Failed to write %s data to stdin. %s", val, err)
 	}
 }
