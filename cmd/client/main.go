@@ -55,7 +55,7 @@ func start(port uint, host, name string) error {
 
 	gameOver := false
 	for !gameOver {
-		log.Println("Enter selection ('r', 'p', 's')")
+		log.Println("Please type the selection ('r', 'p', 's') and press enter:")
 		scanner := bufio.NewScanner(os.Stdin)
 		if !scanner.Scan() {
 			return fmt.Errorf("failed to scan user input. %w", err)
