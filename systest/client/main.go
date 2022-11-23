@@ -49,7 +49,7 @@ func testPlaySessionWithOneRound() {
 
 	expectRead(conn, com.TypeJoin, com.JoinContent{Name: "anonymous"})
 	mustSend(conn, com.TypeStart, com.StartContent{OpponentName: "mickey"})
-	mustWrite(input, "r\n")
+	mustWrite(input, game.SelectionRock)
 	expectRead(conn, com.TypeSelect, com.SelectContent{Selection: game.SelectionRock})
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionPaper, Result: game.ResultLose})
 
@@ -72,19 +72,19 @@ func testPlaySessionWithManyRounds() {
 	expectRead(conn, com.TypeJoin, com.JoinContent{Name: "anonymous"})
 	mustSend(conn, com.TypeStart, com.StartContent{OpponentName: "mickey"})
 
-	mustWrite(input, "r\n")
+	mustWrite(input, game.SelectionRock)
 	expectRead(conn, com.TypeSelect, com.SelectContent{Selection: game.SelectionRock})
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionRock, Result: game.ResultDraw})
 
-	mustWrite(input, "p\n")
+	mustWrite(input, game.SelectionPaper)
 	expectRead(conn, com.TypeSelect, com.SelectContent{Selection: game.SelectionPaper})
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionPaper, Result: game.ResultDraw})
 
-	mustWrite(input, "s\n")
+	mustWrite(input, game.SelectionScissors)
 	expectRead(conn, com.TypeSelect, com.SelectContent{Selection: game.SelectionScissors})
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionScissors, Result: game.ResultDraw})
 
-	mustWrite(input, "r\n")
+	mustWrite(input, game.SelectionRock)
 	expectRead(conn, com.TypeSelect, com.SelectContent{Selection: game.SelectionRock})
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionScissors, Result: game.ResultWin})
 
@@ -188,8 +188,8 @@ func mustSend[T any](writer io.Writer, messageType com.MessageType, val T) {
 	}
 }
 
-func mustWrite(writer io.Writer, val string) {
-	if _, err := writer.Write([]byte(val)); err != nil {
+func mustWrite(writer io.Writer, val game.Selection) {
+	if _, err := writer.Write([]byte(val + "\n")); err != nil {
 		log.Panicf("Failed to write %s data to stdin. %s", val, err)
 	}
 }
