@@ -52,6 +52,7 @@ func testPlaySessionWithOneRound() {
 	selection := mustRead[com.SelectContent](conn, com.TypeSelect)
 	assertSelection(game.SelectionRock, selection.Selection)
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionPaper, Result: game.ResultLose})
+
 	if err := client.Wait(); err != nil {
 		log.Panicf("Unable to wait until client disconnects and closes. %s", err)
 	}
