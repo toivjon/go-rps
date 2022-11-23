@@ -51,7 +51,7 @@ func start(port uint, host, name string) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("starting the game: %+v", startContent)
+	log.Printf("Opponent joined the game: %s", startContent.OpponentName)
 
 	gameOver := false
 	for !gameOver {
