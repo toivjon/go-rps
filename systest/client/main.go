@@ -47,12 +47,10 @@ func testPlaySessionWithOneRound() {
 	conn := accept(server)
 	defer conn.Close()
 
-	joinContent := mustRead[com.JoinContent](conn, com.TypeJoin)
-	assertName("anonymous", joinContent.Name)
+	expectRead(conn, com.TypeJoin, com.JoinContent{Name: "anonymous"})
 	mustSend(conn, com.TypeStart, com.StartContent{OpponentName: "mickey"})
 	mustWrite(input, "r\n")
-	selection := mustRead[com.SelectContent](conn, com.TypeSelect)
-	assertSelection(game.SelectionRock, selection.Selection)
+	expectRead(conn, com.TypeSelect, com.SelectContent{Selection: game.SelectionRock})
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionPaper, Result: game.ResultLose})
 
 	if err := client.Wait(); err != nil {
@@ -71,28 +69,23 @@ func testPlaySessionWithManyRounds() {
 	conn := accept(server)
 	defer conn.Close()
 
-	joinContent := mustRead[com.JoinContent](conn, com.TypeJoin)
-	assertName("anonymous", joinContent.Name)
+	expectRead(conn, com.TypeJoin, com.JoinContent{Name: "anonymous"})
 	mustSend(conn, com.TypeStart, com.StartContent{OpponentName: "mickey"})
 
 	mustWrite(input, "r\n")
-	selection := mustRead[com.SelectContent](conn, com.TypeSelect)
-	assertSelection(game.SelectionRock, selection.Selection)
+	expectRead(conn, com.TypeSelect, com.SelectContent{Selection: game.SelectionRock})
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionRock, Result: game.ResultDraw})
 
 	mustWrite(input, "p\n")
-	selection = mustRead[com.SelectContent](conn, com.TypeSelect)
-	assertSelection(game.SelectionPaper, selection.Selection)
+	expectRead(conn, com.TypeSelect, com.SelectContent{Selection: game.SelectionPaper})
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionPaper, Result: game.ResultDraw})
 
 	mustWrite(input, "s\n")
-	selection = mustRead[com.SelectContent](conn, com.TypeSelect)
-	assertSelection(game.SelectionScissors, selection.Selection)
+	expectRead(conn, com.TypeSelect, com.SelectContent{Selection: game.SelectionScissors})
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionScissors, Result: game.ResultDraw})
 
 	mustWrite(input, "r\n")
-	selection = mustRead[com.SelectContent](conn, com.TypeSelect)
-	assertSelection(game.SelectionRock, selection.Selection)
+	expectRead(conn, com.TypeSelect, com.SelectContent{Selection: game.SelectionRock})
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionScissors, Result: game.ResultWin})
 
 	if err := client.Wait(); err != nil {
@@ -162,15 +155,10 @@ func assertExitCode(expected, actual int) {
 	}
 }
 
-func assertName(expected, actual string) {
-	if expected != actual {
-		log.Panicf("Unexpected name. Expected: %s Was: %s", expected, actual)
-	}
-}
-
-func assertSelection(expected, actual game.Selection) {
-	if expected != actual {
-		log.Panicf("Unexpected selection. Expected: %s Was: %s", expected, actual)
+func expectRead[T comparable](reader io.Reader, messageType com.MessageType, content T) {
+	message := mustRead[T](reader, messageType)
+	if content != *message {
+		log.Panicf("Unexpected message content received. Expected: %+v Was: %+v", content, message)
 	}
 }
 
