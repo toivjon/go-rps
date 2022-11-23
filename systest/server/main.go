@@ -15,10 +15,11 @@ import (
 )
 
 const (
-	serverHost = "localhost"
-	serverPort = 7777
-	name1      = "donald"
-	name2      = "mickey"
+	serverHost   = "localhost"
+	serverPort   = 7777
+	startupDelay = 2 * time.Second
+	name1        = "donald"
+	name2        = "mickey"
 )
 
 func main() {
@@ -33,7 +34,7 @@ func testPlaySessionWithOneRound() {
 	log.Println("Test Play Session With One Round")
 	server := startServer()
 	defer closeServer(server)
-	time.Sleep(2 * time.Second)
+	time.Sleep(startupDelay)
 
 	client1 := newClient()
 	defer client1.Close()
@@ -61,7 +62,7 @@ func testPlaySessionWithManyRounds() {
 	log.Println("Test Play Session With Many Rounds")
 	server := startServer()
 	defer closeServer(server)
-	time.Sleep(2 * time.Second)
+	time.Sleep(startupDelay)
 
 	client1 := newClient()
 	defer client1.Close()
@@ -109,7 +110,7 @@ func testPlayManySessionsConcurrently() {
 	log.Println("Test Play Two Sessions Concurrently")
 	server := startServer()
 	defer closeServer(server)
-	time.Sleep(2 * time.Second)
+	time.Sleep(startupDelay)
 
 	client1 := newClient()
 	defer client1.Close()
