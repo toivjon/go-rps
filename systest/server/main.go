@@ -33,7 +33,7 @@ func testPlaySessionWithOneRound() {
 	log.Println("Test Play Session With One Round")
 	server := startServer()
 	defer closeServer(server)
-	time.Sleep(time.Second)
+	time.Sleep(2 * time.Second)
 
 	client1 := newClient()
 	defer client1.Close()
@@ -61,7 +61,7 @@ func testPlaySessionWithManyRounds() {
 	log.Println("Test Play Session With Many Rounds")
 	server := startServer()
 	defer closeServer(server)
-	time.Sleep(time.Second)
+	time.Sleep(2 * time.Second)
 
 	client1 := newClient()
 	defer client1.Close()
@@ -109,6 +109,7 @@ func testPlayManySessionsConcurrently() {
 	log.Println("Test Play Two Sessions Concurrently")
 	server := startServer()
 	defer closeServer(server)
+	time.Sleep(2 * time.Second)
 
 	client1 := newClient()
 	defer client1.Close()
