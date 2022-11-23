@@ -45,13 +45,13 @@ func testPlaySessionWithOneRound() {
 	defer closeClient(client)
 
 	conn := accept(server)
-	joinContent := readJoin(conn)
+	joinContent := mustRead[com.JoinContent](conn, com.TypeJoin)
 	assertName("anonymous", joinContent.Name)
 	mustSend(conn, com.TypeStart, com.StartContent{OpponentName: "mickey"})
 	if _, err := input.Write([]byte("r\n")); err != nil {
 		log.Panicf("Failed to write data to client stdin. %s", err)
 	}
-	selection := readSelect(conn)
+	selection := mustRead[com.SelectContent](conn, com.TypeSelect)
 	assertSelection(game.SelectionRock, selection.Selection)
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionPaper, Result: game.ResultLose})
 	if err := client.Wait(); err != nil {
@@ -68,35 +68,35 @@ func testPlaySessionWithManyRounds() {
 	defer closeClient(client)
 
 	conn := accept(server)
-	joinContent := readJoin(conn)
+	joinContent := mustRead[com.JoinContent](conn, com.TypeJoin)
 	assertName("anonymous", joinContent.Name)
 	mustSend(conn, com.TypeStart, com.StartContent{OpponentName: "mickey"})
 
 	if _, err := input.Write([]byte("r\n")); err != nil {
 		log.Panicf("Failed to write data to client stdin. %s", err)
 	}
-	selection := readSelect(conn)
+	selection := mustRead[com.SelectContent](conn, com.TypeSelect)
 	assertSelection(game.SelectionRock, selection.Selection)
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionRock, Result: game.ResultDraw})
 
 	if _, err := input.Write([]byte("p\n")); err != nil {
 		log.Panicf("Failed to write data to client stdin. %s", err)
 	}
-	selection = readSelect(conn)
+	selection = mustRead[com.SelectContent](conn, com.TypeSelect)
 	assertSelection(game.SelectionPaper, selection.Selection)
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionPaper, Result: game.ResultDraw})
 
 	if _, err := input.Write([]byte("s\n")); err != nil {
 		log.Panicf("Failed to write data to client stdin. %s", err)
 	}
-	selection = readSelect(conn)
+	selection = mustRead[com.SelectContent](conn, com.TypeSelect)
 	assertSelection(game.SelectionScissors, selection.Selection)
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionScissors, Result: game.ResultDraw})
 
 	if _, err := input.Write([]byte("r\n")); err != nil {
 		log.Panicf("Failed to write data to client stdin. %s", err)
 	}
-	selection = readSelect(conn)
+	selection = mustRead[com.SelectContent](conn, com.TypeSelect)
 	assertSelection(game.SelectionRock, selection.Selection)
 	mustSend(conn, com.TypeResult, com.ResultContent{OpponentSelection: game.SelectionScissors, Result: game.ResultWin})
 
@@ -179,26 +179,17 @@ func assertSelection(expected, actual game.Selection) {
 	}
 }
 
-func readJoin(conn net.Conn) com.JoinContent {
-	message, err := com.Read[com.Message](conn)
+func mustRead[T any](reader io.Reader, messageType com.MessageType) *T {
+	message, err := com.Read[com.Message](reader)
 	if err != nil {
-		log.Panicf("Failed to read JOIN message. %s", err)
+		log.Panicf("Failed to read %s message. %s", messageType, err)
 	}
-	content := com.JoinContent{Name: ""}
-	if err := json.Unmarshal(message.Content, &content); err != nil {
-		log.Panicf("Failed to read JOIN content. %s", err)
+	if message.Type != messageType {
+		log.Panicf("Unexpected message type received. Expected: %s Was: %s", messageType, message.Type)
 	}
-	return content
-}
-
-func readSelect(conn net.Conn) com.SelectContent {
-	message, err := com.Read[com.Message](conn)
-	if err != nil {
-		log.Panicf("Failed to read SELECT message. %s", err)
-	}
-	content := com.SelectContent{Selection: ""}
-	if err := json.Unmarshal(message.Content, &content); err != nil {
-		log.Panicf("Failed to read SELECT content. %s", err)
+	content := new(T)
+	if err := json.Unmarshal(message.Content, content); err != nil {
+		log.Panicf("Failed to read %s content. %s", messageType, err)
 	}
 	return content
 }
