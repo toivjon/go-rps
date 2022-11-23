@@ -193,7 +193,7 @@ func closeServer(server *exec.Cmd) {
 func newClient() net.Conn {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", serverHost, serverPort))
 	if err != nil {
-		log.Panicln("Failed to open TCP connection to server. %w", err)
+		log.Panicf("Failed to open TCP connection to server. %s", err)
 	}
 	return conn
 }
