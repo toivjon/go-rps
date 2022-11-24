@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -19,6 +20,8 @@ const (
 	defaultHost = "localhost"
 	defaultName = "anonymous"
 )
+
+var errUnexpectedMessageType = errors.New("unexpected message type")
 
 func main() {
 	port := flag.Uint("port", defaultPort, "The port of the server.")
@@ -47,7 +50,7 @@ func start(port uint, host, name string) error {
 	}
 
 	log.Printf("Waiting for an opponent. Please stand by...")
-	startContent, err := readStart(conn)
+	startContent, err := read[com.StartContent](conn, com.TypeStart)
 	if err != nil {
 		return err
 	}
@@ -60,7 +63,7 @@ func start(port uint, host, name string) error {
 		}
 
 		log.Println("Waiting for game result. Please wait...")
-		resultContent, err := readResult(conn)
+		resultContent, err := read[com.ResultContent](conn, com.TypeResult)
 		if err != nil {
 			return err
 		}
@@ -106,26 +109,17 @@ func send[T any](writer io.Writer, messageType com.MessageType, val T) error {
 	return nil
 }
 
-func readStart(reader io.Reader) (com.StartContent, error) {
+func read[T any](reader io.Reader, messageType com.MessageType) (*T, error) {
 	message, err := com.Read[com.Message](reader)
 	if err != nil {
-		return com.StartContent{}, fmt.Errorf("failed to read START message. %w", err)
+		return nil, fmt.Errorf("failed to read %s message. %w", messageType, err)
 	}
-	content := com.StartContent{OpponentName: ""}
+	if messageType != message.Type {
+		return nil, fmt.Errorf("failed to read %s message as %s. %w", message.Type, messageType, errUnexpectedMessageType)
+	}
+	content := new(T)
 	if err := json.Unmarshal(message.Content, &content); err != nil {
-		return com.StartContent{}, fmt.Errorf("failed to read START content. %w", err)
-	}
-	return content, nil
-}
-
-func readResult(reader io.Reader) (com.ResultContent, error) {
-	message, err := com.Read[com.Message](reader)
-	if err != nil {
-		return com.ResultContent{}, fmt.Errorf("failed to read RESULT message. %w", err)
-	}
-	content := com.ResultContent{OpponentSelection: "", Result: ""}
-	if err := json.Unmarshal(message.Content, &content); err != nil {
-		return com.ResultContent{}, fmt.Errorf("failed to read RESULT content. %w", err)
+		return nil, fmt.Errorf("failed to read %s content. %w", messageType, err)
 	}
 	return content, nil
 }
