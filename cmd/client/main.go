@@ -42,7 +42,7 @@ func start(port uint, host, name string) error {
 	defer conn.Close()
 
 	log.Printf("Joining as player: %s", name)
-	if err := sendJoin(conn, name); err != nil {
+	if err := send(conn, com.TypeJoin, com.JoinContent{Name: name}); err != nil {
 		return err
 	}
 
@@ -89,19 +89,19 @@ func processSelect(conn net.Conn) error {
 		return fmt.Errorf("failed to validate user input. %w", err)
 	}
 
-	if err := sendSelect(conn, selection); err != nil {
+	if err := send(conn, com.TypeSelect, com.SelectContent{Selection: selection}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func sendJoin(writer io.Writer, name string) error {
-	content, err := json.Marshal(com.JoinContent{Name: name})
+func send[T any](writer io.Writer, messageType com.MessageType, val T) error {
+	content, err := json.Marshal(val)
 	if err != nil {
-		return fmt.Errorf("failed marshal JOIN content into JSON. %w", err)
+		return fmt.Errorf("failed marshal %s content into JSON. %w", messageType, err)
 	}
-	if err := com.Write(writer, com.Message{Type: com.TypeJoin, Content: content}); err != nil {
-		return fmt.Errorf("failed to write JOIN message to connection. %w", err)
+	if err := com.Write(writer, com.Message{Type: messageType, Content: content}); err != nil {
+		return fmt.Errorf("failed to write %s message to connection. %w", messageType, err)
 	}
 	return nil
 }
@@ -116,17 +116,6 @@ func readStart(reader io.Reader) (com.StartContent, error) {
 		return com.StartContent{}, fmt.Errorf("failed to read START content. %w", err)
 	}
 	return content, nil
-}
-
-func sendSelect(writer io.Writer, selection game.Selection) error {
-	content, err := json.Marshal(com.SelectContent{Selection: selection})
-	if err != nil {
-		return fmt.Errorf("failed to marshal SELECT content into JSON. %w", err)
-	}
-	if err := com.Write(writer, com.Message{Type: com.TypeSelect, Content: content}); err != nil {
-		return fmt.Errorf("failed to write SELECT message to connection. %w", err)
-	}
-	return nil
 }
 
 func readResult(reader io.Reader) (com.ResultContent, error) {
