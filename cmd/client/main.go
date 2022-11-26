@@ -2,9 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
-	"net"
 
 	"github.com/toivjon/go-rps/internal/client"
 )
@@ -22,23 +20,8 @@ func main() {
 	flag.Parse()
 
 	log.Println("Welcome to the RPS client")
-	if err := start(*port, *host, *name); err != nil {
+	if err := client.Start(*port, *host, *name); err != nil {
 		log.Fatalf("Client was closed due an error: %v", err)
 	}
 	log.Println("Client was closed successfully.")
-}
-
-func start(port uint, host, name string) error {
-	log.Printf("Connecting to the server: %s:%d", host, port)
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
-	if err != nil {
-		return fmt.Errorf("failed to open TCP connection: %w", err)
-	}
-	defer conn.Close()
-
-	cli := client.NewClient(conn, name)
-	if err := cli.Run(); err != nil {
-		return fmt.Errorf("failed to run client. %w", err)
-	}
-	return nil
 }
