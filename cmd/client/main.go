@@ -1,15 +1,12 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net"
 
 	"github.com/toivjon/go-rps/internal/client"
-	"github.com/toivjon/go-rps/internal/com"
 )
 
 const (
@@ -39,25 +36,9 @@ func start(port uint, host, name string) error {
 	}
 	defer conn.Close()
 
-	log.Printf("Joining as player: %s", name)
-	if err := send(conn, com.TypeJoin, com.JoinContent{Name: name}); err != nil {
-		return err
-	}
-
-	cli := client.NewClient(conn)
+	cli := client.NewClient(conn, name)
 	if err := cli.Run(); err != nil {
 		return fmt.Errorf("failed to run client. %w", err)
-	}
-	return nil
-}
-
-func send[T any](writer io.Writer, messageType com.MessageType, val T) error {
-	content, err := json.Marshal(val)
-	if err != nil {
-		return fmt.Errorf("failed marshal %s content into JSON. %w", messageType, err)
-	}
-	if err := com.Write(writer, com.Message{Type: messageType, Content: content}); err != nil {
-		return fmt.Errorf("failed to write %s message to connection. %w", messageType, err)
 	}
 	return nil
 }
