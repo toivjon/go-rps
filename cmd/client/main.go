@@ -20,7 +20,7 @@ func main() {
 	flag.Parse()
 
 	log.Println("Welcome to the RPS client")
-	if err := client.Start(*port, *host, *name); err != nil {
+	if err := client.Run(*port, *host, *name); err != nil {
 		log.Fatalf("Client was closed due an error: %v", err)
 	}
 	log.Println("Client was closed successfully.")
