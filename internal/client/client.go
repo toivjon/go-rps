@@ -23,32 +23,9 @@ func Run(port uint, host, name string) error {
 		return err
 	}
 
-	cli := NewClient(conn, name)
-	if err := cli.Run(); err != nil {
-		return fmt.Errorf("failed to run client. %w", err)
-	}
-	return nil
-}
-
-type Client struct {
-	conn       net.Conn
-	inbox      <-chan com.Message
-	disconnect chan error
-	name       string
-}
-
-func NewClient(conn net.Conn, name string) *Client {
 	disconnect := make(chan error)
-	return &Client{
-		conn:       conn,
-		inbox:      inbox(conn, disconnect),
-		disconnect: disconnect,
-		name:       name,
-	}
-}
-
-func (c *Client) Run() error {
-	if err := waitStart(c.conn, c.inbox, c.disconnect); err != nil {
+	inbox := inbox(conn, disconnect)
+	if err := waitStart(conn, inbox, disconnect); err != nil {
 		return fmt.Errorf("an error occurred during running the current state. %w", err)
 	}
 	log.Printf("Game over.")
