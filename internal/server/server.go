@@ -10,7 +10,7 @@ import (
 	"github.com/toivjon/go-rps/internal/game"
 )
 
-func Start(port uint, host string) error {
+func Run(port uint, host string) error {
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		return fmt.Errorf("failed to start listening TCP socket on port %d. %w", port, err)
