@@ -48,8 +48,7 @@ func NewClient(conn net.Conn, name string) *Client {
 }
 
 func (c *Client) Run() error {
-	err := new(WaitStart).Run(c)
-	if err != nil {
+	if err := waitStart(c.conn, c.inbox, c.disconnect); err != nil {
 		return fmt.Errorf("an error occurred during running the current state. %w", err)
 	}
 	log.Printf("Game over.")
