@@ -2,7 +2,6 @@ package client
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -29,12 +28,8 @@ func handleInput(conn net.Conn, inbox <-chan com.Message, disconnect chan error,
 	if err := game.ValidateSelection(selection); err != nil {
 		return fmt.Errorf("failed to validate user input. %w", err)
 	}
-	content, err := json.Marshal(com.SelectContent{Selection: selection})
-	if err != nil {
-		return fmt.Errorf("failed marshal SELECT content into JSON. %w", err)
-	}
-	if err := com.Write(conn, com.Message{Type: com.TypeSelect, Content: content}); err != nil {
-		return fmt.Errorf("failed to write SELECT message to connection. %w", err)
+	if err := com.WriteMessage(conn, com.TypeSelect, com.SelectContent{Selection: selection}); err != nil {
+		return fmt.Errorf("failed to write SELECT message. %w", err)
 	}
 	return waitResult(conn, inbox, disconnect)
 }

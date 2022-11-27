@@ -8,6 +8,18 @@ import (
 
 const bufferSize = 128
 
+// WriteMessage marshals the given message into a JSON and writes it with the given writer.
+func WriteMessage[T any](writer io.Writer, messageType MessageType, content T) error {
+	bytes, err := json.Marshal(content)
+	if err != nil {
+		return fmt.Errorf("failed to marshal %s content into JSON. %w", messageType, err)
+	}
+	if err := Write(writer, Message{Type: messageType, Content: bytes}); err != nil {
+		return fmt.Errorf("failed to write %s message. %w", messageType, err)
+	}
+	return nil
+}
+
 // Write marshals the provided data into a JSON and writes it with the given writer.
 func Write[T any](writer io.Writer, data T) error {
 	bytes, err := json.Marshal(data)

@@ -1,9 +1,7 @@
 package client
 
 import (
-	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net"
 
@@ -19,8 +17,8 @@ func Run(port uint, host, name string) error {
 	defer conn.Close()
 
 	log.Printf("Joining as player: %s", name)
-	if err := send(conn, com.TypeJoin, com.JoinContent{Name: name}); err != nil {
-		return err
+	if err := com.WriteMessage(conn, com.TypeJoin, com.JoinContent{Name: name}); err != nil {
+		return fmt.Errorf("failed to write JOIN message. %w", err)
 	}
 
 	disconnect := make(chan error)
@@ -45,15 +43,4 @@ func inbox(conn net.Conn, disconnect chan<- error) <-chan com.Message {
 		}
 	}()
 	return inbox
-}
-
-func send[T any](writer io.Writer, messageType com.MessageType, val T) error {
-	content, err := json.Marshal(val)
-	if err != nil {
-		return fmt.Errorf("failed marshal %s content into JSON. %w", messageType, err)
-	}
-	if err := com.Write(writer, com.Message{Type: messageType, Content: content}); err != nil {
-		return fmt.Errorf("failed to write %s message to connection. %w", messageType, err)
-	}
-	return nil
 }

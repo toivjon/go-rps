@@ -18,6 +18,30 @@ func (w *writerMock) Write(b []byte) (int, error) {
 	return w.n, w.err
 }
 
+func TestWriteMessage(t *testing.T) {
+	t.Parallel()
+	t.Run("ReturnsErrorWhenMarshallingFails", func(t *testing.T) {
+		t.Parallel()
+		if err := com.WriteMessage(nil, com.TypeJoin, make(chan int)); err == nil {
+			t.Fatalf("Expected an error, but nil was returned!")
+		}
+	})
+	t.Run("ReturnsErrorWhenWriterWriteFails", func(t *testing.T) {
+		t.Parallel()
+		writer := &writerMock{n: 0, err: errMock}
+		if err := com.WriteMessage(writer, com.TypeJoin, com.JoinContent{Name: ""}); err == nil {
+			t.Fatalf("Expected an error, but nil was returned!")
+		}
+	})
+	t.Run("ReturnsNilWhenSuccess", func(t *testing.T) {
+		t.Parallel()
+		writer := &writerMock{n: 0, err: nil}
+		if err := com.WriteMessage(writer, com.TypeJoin, com.JoinContent{Name: ""}); err != nil {
+			t.Fatalf("Expected no error, but error was returned: %s", err)
+		}
+	})
+}
+
 func TestWrite(t *testing.T) {
 	t.Parallel()
 	t.Run("ReturnsErrorWhenMarshallingFails", func(t *testing.T) {

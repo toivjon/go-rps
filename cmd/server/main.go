@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"log"
 	"net"
 
@@ -139,17 +138,6 @@ func readJoin(conn net.Conn) (com.JoinContent, error) {
 	return content, nil
 }
 
-func sendStart(writer io.Writer, opponentName string) error {
-	content, err := json.Marshal(com.StartContent{OpponentName: opponentName})
-	if err != nil {
-		return fmt.Errorf("failed to marshal START content into JSON. %w", err)
-	}
-	if err := com.Write(writer, com.Message{Type: com.TypeStart, Content: content}); err != nil {
-		return fmt.Errorf("failed to write START message to connection. %w", err)
-	}
-	return nil
-}
-
 func readSelect(conn net.Conn) (com.SelectContent, error) {
 	message, err := com.Read[com.Message](conn)
 	if err != nil {
@@ -160,17 +148,6 @@ func readSelect(conn net.Conn) (com.SelectContent, error) {
 		return com.SelectContent{}, fmt.Errorf("failed to read SELECT content. %w", err)
 	}
 	return content, nil
-}
-
-func sendResult(writer io.Writer, opponentSelection game.Selection, result game.Result) error {
-	content, err := json.Marshal(com.ResultContent{OpponentSelection: opponentSelection, Result: result})
-	if err != nil {
-		return fmt.Errorf("failed to marshal RESULT content into JSON. %w", err)
-	}
-	if err := com.Write(writer, com.Message{Type: com.TypeResult, Content: content}); err != nil {
-		return fmt.Errorf("failed to write RESULT message to connection. %w", err)
-	}
-	return nil
 }
 
 func enterMatchmaker(matchmaker map[net.Conn]*server.Player, player *server.Player) {
@@ -186,10 +163,10 @@ func runSession(matchmaker map[net.Conn]*server.Player, player *server.Player) {
 	for opponentConn, opponent := range matchmaker {
 		delete(matchmaker, opponent.Conn)
 		log.Printf("Starting session %q vs %q", player.Name, opponent.Name)
-		if err := sendStart(player.Conn, opponent.Name); err != nil {
+		if err := com.WriteMessage(player.Conn, com.TypeStart, com.StartContent{OpponentName: opponent.Name}); err != nil {
 			log.Panicln(err)
 		}
-		if err := sendStart(opponentConn, player.Name); err != nil {
+		if err := com.WriteMessage(opponentConn, com.TypeStart, com.StartContent{OpponentName: player.Name}); err != nil {
 			log.Panicln(err)
 		}
 		go runRound(player, opponent)
@@ -262,10 +239,12 @@ func handleResult(selection1, selection2 game.Selection, player, opponent *serve
 	default:
 		panic("invalid result!")
 	}
-	if err := sendResult(player.Conn, selection2, result1); err != nil {
+	messageContent := com.ResultContent{OpponentSelection: selection2, Result: result1}
+	if err := com.WriteMessage(player.Conn, com.TypeResult, messageContent); err != nil {
 		log.Fatalf("Failed to send result. %s", err)
 	}
-	if err := sendResult(opponent.Conn, selection1, result2); err != nil {
+	messageContent = com.ResultContent{OpponentSelection: selection1, Result: result2}
+	if err := com.WriteMessage(opponent.Conn, com.TypeResult, messageContent); err != nil {
 		log.Fatalf("Failed to send result. %s", err)
 	}
 	return result
