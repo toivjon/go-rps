@@ -18,6 +18,11 @@ func Run(port uint, host, name string) error {
 	}
 	defer conn.Close()
 
+	log.Printf("Joining as player: %s", name)
+	if err := send(conn, com.TypeJoin, com.JoinContent{Name: name}); err != nil {
+		return err
+	}
+
 	cli := NewClient(conn, name)
 	if err := cli.Run(); err != nil {
 		return fmt.Errorf("failed to run client. %w", err)
@@ -43,11 +48,6 @@ func NewClient(conn net.Conn, name string) *Client {
 }
 
 func (c *Client) Run() error {
-	log.Printf("Joining as player: %s", c.name)
-	if err := send(c.conn, com.TypeJoin, com.JoinContent{Name: c.name}); err != nil {
-		return err
-	}
-
 	err := new(WaitStart).Run(c)
 	if err != nil {
 		return fmt.Errorf("an error occurred during running the current state. %w", err)
