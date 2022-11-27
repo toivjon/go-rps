@@ -22,10 +22,11 @@ func main() {
 	host := flag.String("host", defaultHost, "The network address to listen for connections.")
 	flag.Parse()
 
-	log.Println("Starting RPS server...")
+	log.Println("Welcome to the RPS server")
 	if err := start(*port, *host); err != nil {
-		log.Fatal(err)
+		log.Fatalf("Server was closed due an error: %v", err)
 	}
+	log.Println("Server was closed successfully.")
 }
 
 func start(port uint, host string) error {
