@@ -11,6 +11,13 @@ type session struct {
 	player2 *Player
 }
 
+func (s *session) Close() {
+	log.Printf("Closing session %p: %q vs. %q", s, s.player1.Name, s.player2.Name)
+	s.player1.Conn.Close()
+	s.player2.Conn.Close()
+	log.Printf("Closing session %p: %q vs. %q completed.", s, s.player1.Name, s.player2.Name)
+}
+
 func runSession(session *session) {
 	player1 := session.player1
 	player2 := session.player2
@@ -33,9 +40,4 @@ func newSession(player1, player2 *Player) *session {
 	player1.Session = session
 	player2.Session = session
 	return session
-}
-
-func endSession(session *session) {
-	session.player1.Conn.Close()
-	session.player2.Conn.Close()
 }

@@ -44,7 +44,7 @@ func Run(port uint, host string) error {
 			enterMatchmaker(matchmaker, player)
 		case conn := <-disconnect:
 			if player, found := conns[conn]; found {
-				endSession(player.Session)
+				player.Session.Close()
 				leaveMatchmaker(matchmaker, player)
 				log.Printf("Player %q left.", conns[conn].Name)
 				delete(conns, conn)
