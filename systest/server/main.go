@@ -28,6 +28,7 @@ func main() {
 	testPlaySessionWithOneRound()
 	testPlaySessionWithManyRounds()
 	testPlayManySessionsConcurrently()
+	testSessionEndsWhenClientDisconnects()
 }
 
 func testPlaySessionWithOneRound() {
@@ -153,6 +154,37 @@ func testPlayManySessionsConcurrently() {
 	result4 := readResult(client4)
 	assertResult(result3, game.SelectionPaper, game.ResultLose)
 	assertResult(result4, game.SelectionRock, game.ResultWin)
+}
+
+func testSessionEndsWhenClientDisconnects() {
+	log.Println("Test Session Ends When Client Disconnects")
+	server := startServer()
+	defer closeServer(server)
+	time.Sleep(startupDelay)
+
+	client1 := newClient()
+	defer client1.Close()
+	client2 := newClient()
+	defer client2.Close()
+
+	sendJoin(client1, name1)
+	sendJoin(client2, name2)
+
+	start1 := readStart(client1)
+	start2 := readStart(client2)
+	assertOpponentName(start1, name2)
+	assertOpponentName(start2, name1)
+
+	errCh := make(chan error)
+	go func() {
+		_, err := com.Read[com.Message](client1)
+		errCh <- err
+	}()
+	client2.Close()
+	err := <-errCh
+	if err == nil {
+		log.Panicf("Expected non-nil error, but received nil!")
+	}
 }
 
 func assertOpponentName(start com.StartContent, expected string) {

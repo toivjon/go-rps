@@ -12,4 +12,5 @@ type Player struct {
 	Name      string
 	Selection chan game.Selection
 	Finished  chan struct{}
+	Session   *session
 }

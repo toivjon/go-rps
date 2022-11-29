@@ -34,6 +34,7 @@ func Run(port uint, host string) error {
 				Name:      "",
 				Selection: make(chan game.Selection),
 				Finished:  make(chan struct{}),
+				Session:   nil,
 			}
 			log.Printf("Connection %v added (conns: %d)", conn, len(conns))
 			go processConnection(conn, disconnect, conns[conn], join)
@@ -43,6 +44,7 @@ func Run(port uint, host string) error {
 			enterMatchmaker(matchmaker, player)
 		case conn := <-disconnect:
 			if player, found := conns[conn]; found {
+				endSession(player.Session)
 				leaveMatchmaker(matchmaker, player)
 				log.Printf("Player %q left.", conns[conn].Name)
 				delete(conns, conn)
@@ -134,7 +136,12 @@ func readSelect(conn net.Conn) (com.SelectContent, error) {
 
 func enterMatchmaker(matchmaker map[net.Conn]*Player, player *Player) {
 	if len(matchmaker) > 0 {
-		runSession(matchmaker, player)
+		for _, opponent := range matchmaker {
+			delete(matchmaker, opponent.Conn)
+			session := newSession(player, opponent)
+			runSession(session)
+			return
+		}
 	} else {
 		matchmaker[player.Conn] = player
 		log.Printf("Player %q joined matchmaker.", player.Name)
