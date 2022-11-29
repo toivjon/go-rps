@@ -12,6 +12,16 @@ type session struct {
 	player2 *Player
 }
 
+func newSession(player1, player2 *Player) *session {
+	session := &session{
+		player1: player1,
+		player2: player2,
+	}
+	player1.Session = session
+	player2.Session = session
+	return session
+}
+
 func (s *session) Start() error {
 	log.Printf("Session %#p starting...", s)
 	if err := com.WriteMessage(s.player1.Conn, com.TypeStart, com.StartContent{OpponentName: s.player2.Name}); err != nil {
@@ -30,14 +40,4 @@ func (s *session) Close() {
 	s.player1.Conn.Close()
 	s.player2.Conn.Close()
 	log.Printf("Closing session %#p: %q vs. %q completed.", s, s.player1.Name, s.player2.Name)
-}
-
-func newSession(player1, player2 *Player) *session {
-	session := &session{
-		player1: player1,
-		player2: player2,
-	}
-	player1.Session = session
-	player2.Session = session
-	return session
 }
