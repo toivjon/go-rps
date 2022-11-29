@@ -139,7 +139,9 @@ func enterMatchmaker(matchmaker map[net.Conn]*Player, player *Player) {
 		for _, opponent := range matchmaker {
 			delete(matchmaker, opponent.Conn)
 			session := newSession(player, opponent)
-			runSession(session)
+			if err := session.Start(); err != nil {
+				log.Panicln(err)
+			}
 			return
 		}
 	} else {
