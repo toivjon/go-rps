@@ -24,8 +24,7 @@ func Run(port uint, host string) error {
 
 	conns := make(map[net.Conn]*Player)
 
-	matchmaker := make(map[net.Conn]*Player)
-
+	matchmaker := new(matchmaker)
 	for {
 		select {
 		case conn := <-accept:
@@ -40,12 +39,15 @@ func Run(port uint, host string) error {
 			go processConnection(conn, disconnect, conns[conn], join)
 		case player := <-join:
 			conns[player.Conn].Name = player.Name
-			log.Printf("Player %q joined.", player.Name)
-			enterMatchmaker(matchmaker, player)
+			if err := matchmaker.Enter(player); err != nil {
+				log.Printf("Player %q Failed to enter matchmaker. %s", player.Name, err)
+			} else {
+				log.Printf("Player %q joined.", player.Name)
+			}
 		case conn := <-disconnect:
 			if player, found := conns[conn]; found {
 				player.Session.Close()
-				leaveMatchmaker(matchmaker, player)
+				matchmaker.Leave(player)
 				log.Printf("Player %q left.", conns[conn].Name)
 				delete(conns, conn)
 				log.Printf("Connection %v removed (conns: %d)", conn, len(conns))
@@ -132,25 +134,4 @@ func readSelect(conn net.Conn) (com.SelectContent, error) {
 		return com.SelectContent{}, fmt.Errorf("failed to read SELECT content. %w", err)
 	}
 	return content, nil
-}
-
-func enterMatchmaker(matchmaker map[net.Conn]*Player, player *Player) {
-	if len(matchmaker) > 0 {
-		for _, opponent := range matchmaker {
-			delete(matchmaker, opponent.Conn)
-			session := newSession(player, opponent)
-			if err := session.Start(); err != nil {
-				log.Panicln(err)
-			}
-			return
-		}
-	} else {
-		matchmaker[player.Conn] = player
-		log.Printf("Player %q joined matchmaker.", player.Name)
-	}
-}
-
-func leaveMatchmaker(matchmaker map[net.Conn]*Player, player *Player) {
-	delete(matchmaker, player.Conn)
-	log.Printf("Player %q left matchmaker.", player.Name)
 }
