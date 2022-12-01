@@ -12,7 +12,8 @@ type session struct {
 	player2 *Player
 }
 
-func newSession(player1, player2 *Player) *session {
+// NewSession builds a new session for the given players.
+func NewSession(player1, player2 *Player) *session {
 	session := &session{
 		player1: player1,
 		player2: player2,
@@ -22,6 +23,7 @@ func newSession(player1, player2 *Player) *session {
 	return session
 }
 
+// Start begins the session by notifying the players and starting a game round.
 func (s *session) Start() error {
 	log.Printf("Session %#p starting...", s)
 	if err := com.WriteMessage(s.player1.Conn, com.TypeStart, com.StartContent{OpponentName: s.player2.Name}); err != nil {
@@ -35,6 +37,7 @@ func (s *session) Start() error {
 	return nil
 }
 
+// Close ends the session by notifying the players by closing the connections.
 func (s *session) Close() {
 	log.Printf("Closing session %#p: %q vs. %q", s, s.player1.Name, s.player2.Name)
 	s.player1.Conn.Close()
