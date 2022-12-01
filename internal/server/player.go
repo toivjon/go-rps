@@ -19,7 +19,7 @@ type Player struct {
 	Session   *session
 }
 
-func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *Player, join chan<- *Player) {
+func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *Player, matchmaker *matchmaker) {
 	defer func() {
 		disconnect <- conn
 		conn.Close()
@@ -31,7 +31,12 @@ func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *Player
 		return
 	}
 	player.Name = joinContent.Name
-	join <- player
+
+	if err := matchmaker.Enter(player); err != nil {
+		log.Printf("Player %q Failed to enter matchmaker. %s", player.Name, err)
+	} else {
+		log.Printf("Player %q joined.", player.Name)
+	}
 
 	reader := func() chan game.Selection {
 		outbox := make(chan game.Selection)

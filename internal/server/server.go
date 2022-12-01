@@ -18,7 +18,6 @@ func Run(port uint, host string) error {
 
 	accept := newAccept(listener)
 	disconnect := make(chan net.Conn)
-	join := make(chan *Player)
 
 	conns := make(map[net.Conn]*Player)
 
@@ -34,14 +33,7 @@ func Run(port uint, host string) error {
 				Session:   nil,
 			}
 			log.Printf("Connection %v added (conns: %d)", conn, len(conns))
-			go processConnection(conn, disconnect, conns[conn], join)
-		case player := <-join:
-			conns[player.Conn].Name = player.Name
-			if err := matchmaker.Enter(player); err != nil {
-				log.Printf("Player %q Failed to enter matchmaker. %s", player.Name, err)
-			} else {
-				log.Printf("Player %q joined.", player.Name)
-			}
+			go processConnection(conn, disconnect, conns[conn], matchmaker)
 		case conn := <-disconnect:
 			if player, found := conns[conn]; found {
 				player.Session.Close()
