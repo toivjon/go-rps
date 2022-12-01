@@ -7,6 +7,7 @@ import (
 	"github.com/toivjon/go-rps/internal/com"
 )
 
+// Session represents a game session with two players which battle between each other.
 type Session struct {
 	player1 *Player
 	player2 *Player
