@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-
-	"github.com/toivjon/go-rps/internal/game"
 )
 
 func Run(port uint, host string) error {
@@ -25,13 +23,7 @@ func Run(port uint, host string) error {
 	for {
 		select {
 		case conn := <-accept:
-			conns[conn] = &Player{
-				Conn:      conn,
-				Name:      "",
-				Selection: make(chan game.Selection),
-				Finished:  make(chan struct{}),
-				Session:   nil,
-			}
+			conns[conn] = NewPlayer(conn)
 			log.Printf("Connection %v added (conns: %d)", conn, len(conns))
 			go processConnection(conn, disconnect, conns[conn], matchmaker)
 		case conn := <-disconnect:

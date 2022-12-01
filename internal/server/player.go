@@ -16,7 +16,17 @@ type Player struct {
 	Name      string
 	Selection chan game.Selection
 	Finished  chan struct{}
-	Session   *session
+	Session   *Session
+}
+
+func NewPlayer(conn net.Conn) *Player {
+	return &Player{
+		Conn:      conn,
+		Name:      "",
+		Selection: make(chan game.Selection),
+		Finished:  make(chan struct{}),
+		Session:   nil,
+	}
 }
 
 func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *Player, matchmaker *matchmaker) {
