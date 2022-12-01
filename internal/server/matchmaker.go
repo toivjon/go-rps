@@ -18,7 +18,7 @@ func (m *matchmaker) Enter(player *Player) error {
 		log.Printf("Player %#p (%s) entered matchmaker.", player, player.Name)
 		return nil
 	}
-	session := newSession(player, m.waitingPlayer)
+	session := NewSession(player, m.waitingPlayer)
 	m.waitingPlayer = nil
 	if err := session.Start(); err != nil {
 		return err
