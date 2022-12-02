@@ -101,7 +101,7 @@ stateDiagram-v2
   [*] --> s1 : Connection Started
   s1 --> s2  : JOIN sent
   s2 --> s3  : START received
-  s3 --> s4  : SELECTION sent
+  s3 --> s4  : SELECT sent
   s4 --> ss  : RESULT received
   ss --> s5  : if result != DRAW
   ss --> s3  : if result == DRAW
