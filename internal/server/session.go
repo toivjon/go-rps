@@ -39,6 +39,7 @@ func (s *Session) Start() error {
 			var err error
 			round := NewRound(s)
 			if result, err = round.Play(); err != nil {
+				log.Printf("Failed to play session %#p round. %s", s, err)
 				return
 			}
 		}

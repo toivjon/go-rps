@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/toivjon/go-rps/internal/com"
@@ -38,12 +39,30 @@ func (r *Round) Play() (RoundResult, error) {
 		case r.p2Selection = <-r.session.player2.Selection:
 		}
 	}
-	return handleResult(r.p1Selection, r.p2Selection, r.session.player1, r.session.player2), nil
+	result := r.resolveResult()
+	if err := r.handleResult(result); err != nil {
+		return result, fmt.Errorf("failed to handle round result. %w", err)
+	}
+	return result, nil
 }
 
-func handleResult(selection1, selection2 game.Selection, player, opponent *Player) RoundResult {
-	result := resolveResult(selection1, selection2)
-	log.Printf("Session %q and %q result: %d", player.Name, opponent.Name, result)
+func (r *Round) resolveResult() RoundResult {
+	switch {
+	case r.p1Selection == r.p2Selection:
+		return ResultDraw
+	case r.p1Selection == game.SelectionPaper && r.p2Selection == game.SelectionScissors:
+		return ResultPlayer2Win
+	case r.p1Selection == game.SelectionRock && r.p2Selection == game.SelectionPaper:
+		return ResultPlayer2Win
+	case r.p1Selection == game.SelectionScissors && r.p2Selection == game.SelectionRock:
+		return ResultPlayer2Win
+	default:
+		return ResultPlayer1Win
+	}
+}
+
+func (r *Round) handleResult(result RoundResult) error {
+	log.Printf("Session %q and %q result: %d", r.session.player1.Name, r.session.player2.Name, result)
 	var result1 game.Result
 	var result2 game.Result
 	switch result {
@@ -59,28 +78,13 @@ func handleResult(selection1, selection2 game.Selection, player, opponent *Playe
 	default:
 		panic("invalid result!")
 	}
-	messageContent := com.ResultContent{OpponentSelection: selection2, Result: result1}
-	if err := com.WriteMessage(player.Conn, com.TypeResult, messageContent); err != nil {
-		log.Fatalf("Failed to send result. %s", err)
+	messageContent := com.ResultContent{OpponentSelection: r.p2Selection, Result: result1}
+	if err := com.WriteMessage(r.session.player1.Conn, com.TypeResult, messageContent); err != nil {
+		return fmt.Errorf("failed to write result message for client %#p. %w", r.session.player1, err)
 	}
-	messageContent = com.ResultContent{OpponentSelection: selection1, Result: result2}
-	if err := com.WriteMessage(opponent.Conn, com.TypeResult, messageContent); err != nil {
-		log.Fatalf("Failed to send result. %s", err)
+	messageContent = com.ResultContent{OpponentSelection: r.p1Selection, Result: result2}
+	if err := com.WriteMessage(r.session.player2.Conn, com.TypeResult, messageContent); err != nil {
+		return fmt.Errorf("failed to write result message for client %#p. %w", r.session.player2, err)
 	}
-	return result
-}
-
-func resolveResult(player1, player2 game.Selection) RoundResult {
-	switch {
-	case player1 == player2:
-		return ResultDraw
-	case player1 == game.SelectionPaper && player2 == game.SelectionScissors:
-		return ResultPlayer2Win
-	case player1 == game.SelectionRock && player2 == game.SelectionPaper:
-		return ResultPlayer2Win
-	case player1 == game.SelectionScissors && player2 == game.SelectionRock:
-		return ResultPlayer2Win
-	default:
-		return ResultPlayer1Win
-	}
+	return nil
 }
