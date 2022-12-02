@@ -16,19 +16,29 @@ const (
 	ResultPlayer2Win RoundResult = 2
 )
 
-func runRound(player, opponent *Player) RoundResult {
+type Round struct {
+	session     *Session
+	p1Selection game.Selection
+	p2Selection game.Selection
+}
+
+func NewRound(session *Session) *Round {
+	return &Round{
+		session:     session,
+		p1Selection: game.SelectionNone,
+		p2Selection: game.SelectionNone,
+	}
+}
+
+func (r *Round) Play() (RoundResult, error) {
 	log.Printf("Starting a new round. Waiting for player selections...")
-	selection1 := game.SelectionNone
-	selection2 := game.SelectionNone
-	for selection1 == game.SelectionNone || selection2 == game.SelectionNone {
+	for r.p1Selection == game.SelectionNone || r.p2Selection == game.SelectionNone {
 		select {
-		case selection := <-player.Selection:
-			selection1 = selection
-		case selection := <-opponent.Selection:
-			selection2 = selection
+		case r.p1Selection = <-r.session.player1.Selection:
+		case r.p2Selection = <-r.session.player2.Selection:
 		}
 	}
-	return handleResult(selection1, selection2, player, opponent)
+	return handleResult(r.p1Selection, r.p2Selection, r.session.player1, r.session.player2), nil
 }
 
 func handleResult(selection1, selection2 game.Selection, player, opponent *Player) RoundResult {

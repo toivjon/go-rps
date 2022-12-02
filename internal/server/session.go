@@ -36,7 +36,11 @@ func (s *Session) Start() error {
 	go func() {
 		result := ResultDraw
 		for result == ResultDraw {
-			runRound(s.player1, s.player2)
+			var err error
+			round := NewRound(s)
+			if result, err = round.Play(); err != nil {
+				return
+			}
 		}
 		s.player1.Finished <- struct{}{}
 		s.player2.Finished <- struct{}{}
