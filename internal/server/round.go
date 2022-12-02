@@ -16,24 +16,19 @@ const (
 	ResultPlayer2Win RoundResult = 2
 )
 
-func runRound(player, opponent *Player) {
-	result := ResultDraw
-	for result == ResultDraw {
-		log.Printf("Starting a new round. Waiting for player selections...")
-		selection1 := game.SelectionNone
-		selection2 := game.SelectionNone
-		for selection1 == game.SelectionNone || selection2 == game.SelectionNone {
-			select {
-			case selection := <-player.Selection:
-				selection1 = selection
-			case selection := <-opponent.Selection:
-				selection2 = selection
-			}
+func runRound(player, opponent *Player) RoundResult {
+	log.Printf("Starting a new round. Waiting for player selections...")
+	selection1 := game.SelectionNone
+	selection2 := game.SelectionNone
+	for selection1 == game.SelectionNone || selection2 == game.SelectionNone {
+		select {
+		case selection := <-player.Selection:
+			selection1 = selection
+		case selection := <-opponent.Selection:
+			selection2 = selection
 		}
-		result = handleResult(selection1, selection2, player, opponent)
 	}
-	player.Finished <- struct{}{}
-	opponent.Finished <- struct{}{}
+	return handleResult(selection1, selection2, player, opponent)
 }
 
 func handleResult(selection1, selection2 game.Selection, player, opponent *Player) RoundResult {

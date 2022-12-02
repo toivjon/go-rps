@@ -33,7 +33,14 @@ func (s *Session) Start() error {
 	if err := com.WriteMessage(s.player2.Conn, com.TypeStart, com.StartContent{OpponentName: s.player1.Name}); err != nil {
 		return fmt.Errorf("failed to write start message for client %#p. %w", s.player2, err)
 	}
-	go runRound(s.player1, s.player2)
+	go func() {
+		result := ResultDraw
+		for result == ResultDraw {
+			runRound(s.player1, s.player2)
+		}
+		s.player1.Finished <- struct{}{}
+		s.player2.Finished <- struct{}{}
+	}()
 	log.Printf("Session %#p started.", s)
 	return nil
 }
