@@ -43,8 +43,6 @@ func processConnection(disconnect chan<- net.Conn, player *Player, matchmaker *m
 
 	if err := matchmaker.Enter(player); err != nil {
 		log.Printf("Player %q Failed to enter matchmaker. %s", player.Name, err)
-	} else {
-		log.Printf("Player %q joined.", player.Name)
 	}
 
 	reader := func() chan game.Selection {

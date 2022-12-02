@@ -13,9 +13,9 @@ type matchmaker struct {
 func (m *matchmaker) Enter(player *Player) error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
+	log.Printf("Player %#p (%s) enters matchmaker.", player, player.Name)
 	if m.waitingPlayer == nil {
 		m.waitingPlayer = player
-		log.Printf("Player %#p (%s) entered matchmaker.", player, player.Name)
 		return nil
 	}
 	session := NewSession(player, m.waitingPlayer)
