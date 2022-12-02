@@ -83,3 +83,27 @@ sequenceDiagram
   deactivate c
   deactivate s
 ```
+
+## Client States
+
+This section describes the avaiable client states.
+
+```mermaid
+stateDiagram-v2
+  s1 : Connected
+  s2 : Joined
+  s3 : Started
+  s4 : Waiting
+  s5 : Ended
+
+  state ss <<choice>>
+
+  [*] --> s1 : Connection Started
+  s1 --> s2  : JOIN sent
+  s2 --> s3  : START received
+  s3 --> s4  : SELECTION sent
+  s4 --> ss  : RESULT received
+  ss --> s5  : if result != DRAW
+  ss --> s3  : if result == DRAW
+  s5 --> [*] : Connection Closed
+```
