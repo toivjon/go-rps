@@ -7,10 +7,13 @@ import (
 	"github.com/toivjon/go-rps/internal/game"
 )
 
+// RoundResult represents a game round outcome.
+type RoundResult int
+
 const (
-	ResultDraw       = 0
-	ResultPlayer1Win = 1
-	ResultPlayer2Win = 2
+	ResultDraw       RoundResult = 0
+	ResultPlayer1Win RoundResult = 1
+	ResultPlayer2Win RoundResult = 2
 )
 
 func runRound(player, opponent *Player) {
@@ -33,7 +36,7 @@ func runRound(player, opponent *Player) {
 	opponent.Finished <- struct{}{}
 }
 
-func handleResult(selection1, selection2 game.Selection, player, opponent *Player) int {
+func handleResult(selection1, selection2 game.Selection, player, opponent *Player) RoundResult {
 	result := resolveResult(selection1, selection2)
 	log.Printf("Session %q and %q result: %d", player.Name, opponent.Name, result)
 	var result1 game.Result
@@ -62,7 +65,7 @@ func handleResult(selection1, selection2 game.Selection, player, opponent *Playe
 	return result
 }
 
-func resolveResult(player1, player2 game.Selection) int {
+func resolveResult(player1, player2 game.Selection) RoundResult {
 	switch {
 	case player1 == player2:
 		return ResultDraw
