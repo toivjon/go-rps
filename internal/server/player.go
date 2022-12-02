@@ -37,7 +37,6 @@ func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *Player
 
 	joinContent, err := readJoin(conn)
 	if err != nil {
-		disconnect <- conn
 		return
 	}
 	player.Name = joinContent.Name
