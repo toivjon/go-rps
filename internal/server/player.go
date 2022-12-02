@@ -29,13 +29,13 @@ func NewPlayer(conn net.Conn) *Player {
 	}
 }
 
-func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *Player, matchmaker *matchmaker) {
+func processConnection(disconnect chan<- net.Conn, player *Player, matchmaker *matchmaker) {
 	defer func() {
-		disconnect <- conn
-		conn.Close()
+		disconnect <- player.Conn
+		player.Conn.Close()
 	}()
 
-	joinContent, err := readJoin(conn)
+	joinContent, err := readJoin(player.Conn)
 	if err != nil {
 		return
 	}
@@ -51,9 +51,9 @@ func processConnection(conn net.Conn, disconnect chan<- net.Conn, player *Player
 		outbox := make(chan game.Selection)
 		go func() {
 			for {
-				selection, err := readSelect(conn)
+				selection, err := readSelect(player.Conn)
 				if err != nil {
-					disconnect <- conn
+					disconnect <- player.Conn
 					return
 				}
 				outbox <- selection.Selection

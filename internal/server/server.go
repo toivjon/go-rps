@@ -25,7 +25,7 @@ func Run(port uint, host string) error {
 		case conn := <-accept:
 			conns[conn] = NewPlayer(conn)
 			log.Printf("Connection %v added (conns: %d)", conn, len(conns))
-			go processConnection(conn, disconnect, conns[conn], matchmaker)
+			go processConnection(disconnect, conns[conn], matchmaker)
 		case conn := <-disconnect:
 			if player, found := conns[conn]; found {
 				player.Session.Close()
