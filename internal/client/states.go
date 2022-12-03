@@ -33,7 +33,7 @@ func Joined(conn net.Conn) (State, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read START message. %w", err)
 	}
-	log.Printf("Opponent joined the game: %s", message.OpponentName)
+	log.Printf("Opponent %q joined the game.", message.OpponentName)
 	return Started, nil
 }
 
