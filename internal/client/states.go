@@ -16,7 +16,7 @@ import (
 var ErrEnd = errors.New("end")
 
 func Connected(conn net.Conn) (State, error) {
-	log.Printf("Please type a username and press enter")
+	log.Printf("Enter your name:")
 	name, err := waitInput()
 	if err != nil {
 		return nil, fmt.Errorf("failed to read user input to as username. %w", err)
@@ -24,6 +24,7 @@ func Connected(conn net.Conn) (State, error) {
 	if err := com.WriteMessage(conn, com.TypeJoin, com.JoinContent{Name: name}); err != nil {
 		return nil, fmt.Errorf("failed to write JOIN message. %w", err)
 	}
+	log.Printf("Joined the game as %q.", name)
 	return Joined, nil
 }
 
