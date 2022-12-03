@@ -15,6 +15,18 @@ import (
 
 var ErrEnd = errors.New("end")
 
+func Connected(conn net.Conn) (State, error) {
+	log.Printf("Please type a username and press enter")
+	name, err := waitInput()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read user input to as username. %w", err)
+	}
+	if err := com.WriteMessage(conn, com.TypeJoin, com.JoinContent{Name: name}); err != nil {
+		return nil, fmt.Errorf("failed to write JOIN message. %w", err)
+	}
+	return Joined, nil
+}
+
 func Joined(conn net.Conn) (State, error) {
 	log.Printf("Waiting for an opponent. Please wait...")
 	message, err := waitMessage[com.StartContent](conn)
@@ -63,12 +75,20 @@ func waitMessage[T any](conn net.Conn) (*T, error) {
 	return content, nil
 }
 
-func waitSelection() (game.Selection, error) {
+func waitInput() (string, error) {
 	scanner := bufio.NewScanner(os.Stdin)
 	if !scanner.Scan() {
 		return "", fmt.Errorf("failed to scan user input. %w", scanner.Err())
 	}
-	selection := game.Selection(scanner.Text())
+	return scanner.Text(), nil
+}
+
+func waitSelection() (game.Selection, error) {
+	input, err := waitInput()
+	if err != nil {
+		return "", fmt.Errorf("failed to scan user input for selection. %w", err)
+	}
+	selection := game.Selection(input)
 	if err := game.ValidateSelection(selection); err != nil {
 		return "", fmt.Errorf("failed to validate selection. %w", err)
 	}

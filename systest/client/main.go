@@ -16,6 +16,7 @@ import (
 const (
 	serverPort = 7777
 	serverHost = "localhost"
+	name       = "donald"
 )
 
 func main() {
@@ -47,7 +48,8 @@ func testPlaySessionWithOneRound() {
 	conn := accept(server)
 	defer conn.Close()
 
-	expectRead(conn, com.TypeJoin, com.JoinContent{Name: "anonymous"})
+	mustWrite(input, name)
+	expectRead(conn, com.TypeJoin, com.JoinContent{Name: name})
 	mustSend(conn, com.TypeStart, com.StartContent{OpponentName: "mickey"})
 	mustWrite(input, game.SelectionRock)
 	expectRead(conn, com.TypeSelect, com.SelectContent{Selection: game.SelectionRock})
@@ -69,7 +71,8 @@ func testPlaySessionWithManyRounds() {
 	conn := accept(server)
 	defer conn.Close()
 
-	expectRead(conn, com.TypeJoin, com.JoinContent{Name: "anonymous"})
+	mustWrite(input, name)
+	expectRead(conn, com.TypeJoin, com.JoinContent{Name: name})
 	mustSend(conn, com.TypeStart, com.StartContent{OpponentName: "mickey"})
 
 	mustWrite(input, game.SelectionRock)
