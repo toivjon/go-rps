@@ -1,12 +1,16 @@
 package client
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
 
 	"github.com/toivjon/go-rps/internal/com"
 )
+
+// State represents a reference to a client state which may return next state or an error.
+type State func(conn net.Conn) (State, error)
 
 func Run(port uint, host, name string) error {
 	log.Printf("Connecting to the server: %s:%d", host, port)
@@ -21,26 +25,12 @@ func Run(port uint, host, name string) error {
 		return fmt.Errorf("failed to write JOIN message. %w", err)
 	}
 
-	disconnect := make(chan error)
-	inbox := inbox(conn, disconnect)
-	if err := waitStart(conn, inbox, disconnect); err != nil {
-		return fmt.Errorf("an error occurred during running the current state. %w", err)
+	state := Joined
+	for state != nil {
+		state, err = state(conn)
 	}
-	log.Printf("Game over.")
+	if err != nil && !errors.Is(err, ErrEnd) {
+		return err
+	}
 	return nil
-}
-
-func inbox(conn net.Conn, disconnect chan<- error) <-chan com.Message {
-	inbox := make(chan com.Message)
-	go func() {
-		for {
-			message, err := com.Read[com.Message](conn)
-			if err != nil {
-				disconnect <- err
-				break
-			}
-			inbox <- *message
-		}
-	}()
-	return inbox
 }
