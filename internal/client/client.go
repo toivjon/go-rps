@@ -18,12 +18,10 @@ func Run(port uint, host string) error {
 	}
 	defer conn.Close()
 
-	state := Connected
-	for state != nil {
-		state, err = state(conn)
-	}
-	if err != nil && !errors.Is(err, ErrEnd) {
-		return err
+	for state := Connected; state != nil; {
+		if state, err = state(conn); err != nil && !errors.Is(err, ErrEnd) {
+			return err
+		}
 	}
 	return nil
 }
