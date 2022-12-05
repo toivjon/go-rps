@@ -66,10 +66,7 @@ func TestConnected(t *testing.T) {
 		t.Parallel()
 		ctx := client.NewContext(
 			succeedingReaderMock(strings.Repeat("s", client.NameMaxLength)),
-			readWriterMock{
-				readerMock: readerMock{n: 0, err: nil, val: nil},
-				writerMock: writerMock{n: 0, err: errMock},
-			})
+			newWritableConnMock(errMock))
 		result, err := client.Connected(ctx)
 		if result != nil {
 			t.Fatalf("Expected nil result, but %v was returned!", result)
@@ -82,10 +79,7 @@ func TestConnected(t *testing.T) {
 		t.Parallel()
 		ctx := client.NewContext(
 			succeedingReaderMock(strings.Repeat("s", client.NameMaxLength)),
-			readWriterMock{
-				readerMock: readerMock{n: 0, err: nil, val: nil},
-				writerMock: writerMock{n: 0, err: nil},
-			})
+			newWritableConnMock(nil))
 		result, err := client.Connected(ctx)
 		if result == nil {
 			t.Fatalf("Expected non-nil result, but nil was returned!")
@@ -161,12 +155,7 @@ func TestStarted(t *testing.T) {
 	})
 	t.Run("ReturnErrorWhenWriteMessageFails", func(t *testing.T) {
 		t.Parallel()
-		ctx := client.NewContext(
-			succeedingReaderMock(string(game.SelectionPaper)),
-			readWriterMock{
-				readerMock: readerMock{n: 0, err: nil, val: nil},
-				writerMock: writerMock{n: 0, err: errMock},
-			})
+		ctx := client.NewContext(succeedingReaderMock(string(game.SelectionPaper)), newWritableConnMock(errMock))
 		result, err := client.Started(ctx)
 		if result != nil {
 			t.Fatalf("Expected nil result, but %v was returned!", result)
@@ -177,12 +166,7 @@ func TestStarted(t *testing.T) {
 	})
 	t.Run("ReturnStateWhenSuccess", func(t *testing.T) {
 		t.Parallel()
-		ctx := client.NewContext(
-			succeedingReaderMock(string(game.SelectionPaper)),
-			readWriterMock{
-				readerMock: readerMock{n: 0, err: nil, val: nil},
-				writerMock: writerMock{n: 0, err: nil},
-			})
+		ctx := client.NewContext(succeedingReaderMock(string(game.SelectionPaper)), newWritableConnMock(nil))
 		result, err := client.Started(ctx)
 		if result == nil {
 			t.Fatalf("Expected non-nil result, but nil was returned!")
@@ -254,6 +238,19 @@ func newReadableConnMock(data string, err error) readWriterMock {
 		}, writerMock: writerMock{
 			n:   0,
 			err: nil,
+		},
+	}
+}
+
+func newWritableConnMock(err error) readWriterMock {
+	return readWriterMock{
+		readerMock: readerMock{
+			n:   0,
+			err: nil,
+			val: nil,
+		}, writerMock: writerMock{
+			n:   0,
+			err: err,
 		},
 	}
 }
