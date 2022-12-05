@@ -5,51 +5,54 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
-	"net"
-	"os"
 
 	"github.com/toivjon/go-rps/internal/com"
 	"github.com/toivjon/go-rps/internal/game"
 )
 
-var ErrEnd = errors.New("end")
+var (
+	ErrEnd         = errors.New("end")
+	ErrNameTooLong = fmt.Errorf("player name must not contain more than %d characters", NameMaxLength)
+)
+
+// NameMaxLength specifies the maximum length of the player's name.
+const NameMaxLength = 64
 
 // State represents a reference to a client state which may return a next state or an error.
-type State func(conn net.Conn) (State, error)
+type State func(ctx Context) (State, error)
 
-func Run(port uint, host string) error {
-	log.Printf("Connecting to the server: %s:%d", host, port)
-	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", host, port))
-	if err != nil {
-		return fmt.Errorf("failed to open TCP connection: %w", err)
-	}
-	defer conn.Close()
-
-	for state := Connected; state != nil; {
-		if state, err = state(conn); err != nil && !errors.Is(err, ErrEnd) {
+func Run(ctx Context, state State) error {
+	for state != nil {
+		nextState, err := state(ctx)
+		if err != nil && !errors.Is(err, ErrEnd) {
 			return err
 		}
+		state = nextState
 	}
 	return nil
 }
 
-func Connected(conn net.Conn) (State, error) {
+func Connected(ctx Context) (State, error) {
 	log.Printf("Enter your name:")
-	name, err := waitInput()
+	name, err := waitInput(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read user input to as username. %w", err)
 	}
-	if err := com.WriteMessage(conn, com.TypeJoin, com.JoinContent{Name: name}); err != nil {
+	if len(name) > NameMaxLength {
+		return nil, ErrNameTooLong
+	}
+	if err := com.WriteMessage(ctx.Conn, com.TypeJoin, com.JoinContent{Name: name}); err != nil {
 		return nil, fmt.Errorf("failed to write JOIN message. %w", err)
 	}
 	log.Printf("Joined the game as %q.", name)
 	return Joined, nil
 }
 
-func Joined(conn net.Conn) (State, error) {
+func Joined(ctx Context) (State, error) {
 	log.Printf("Waiting for an opponent. Please wait...")
-	message, err := waitMessage[com.StartContent](conn)
+	message, err := waitMessage[com.StartContent](ctx.Conn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read START message. %w", err)
 	}
@@ -57,21 +60,21 @@ func Joined(conn net.Conn) (State, error) {
 	return Started, nil
 }
 
-func Started(conn net.Conn) (State, error) {
+func Started(ctx Context) (State, error) {
 	log.Println("Please type the selection ('r', 'p', 's') and press enter")
-	selection, err := waitSelection()
+	selection, err := waitSelection(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read selection. %w", err)
 	}
-	if err := com.WriteMessage(conn, com.TypeSelect, com.SelectContent{Selection: selection}); err != nil {
+	if err := com.WriteMessage(ctx.Conn, com.TypeSelect, com.SelectContent{Selection: selection}); err != nil {
 		return nil, fmt.Errorf("failed to write SELECT message. %w", err)
 	}
 	return Waiting, nil
 }
 
-func Waiting(conn net.Conn) (State, error) {
+func Waiting(ctx Context) (State, error) {
 	log.Println("Waiting for game result. Please wait...")
-	message, err := waitMessage[com.ResultContent](conn)
+	message, err := waitMessage[com.ResultContent](ctx.Conn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read RESULT message. %w", err)
 	}
@@ -83,7 +86,7 @@ func Waiting(conn net.Conn) (State, error) {
 	return nil, ErrEnd
 }
 
-func waitMessage[T any](conn net.Conn) (*T, error) {
+func waitMessage[T any](conn io.ReadWriter) (*T, error) {
 	message, err := com.Read[com.Message](conn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read message. %w", err)
@@ -95,16 +98,16 @@ func waitMessage[T any](conn net.Conn) (*T, error) {
 	return content, nil
 }
 
-func waitInput() (string, error) {
-	scanner := bufio.NewScanner(os.Stdin)
+func waitInput(ctx Context) (string, error) {
+	scanner := bufio.NewScanner(ctx.Input)
 	if !scanner.Scan() {
 		return "", fmt.Errorf("failed to scan user input. %w", scanner.Err())
 	}
 	return scanner.Text(), nil
 }
 
-func waitSelection() (game.Selection, error) {
-	input, err := waitInput()
+func waitSelection(ctx Context) (game.Selection, error) {
+	input, err := waitInput(ctx)
 	if err != nil {
 		return "", fmt.Errorf("failed to scan user input for selection. %w", err)
 	}
