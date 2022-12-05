@@ -77,6 +77,38 @@ func (r *readerMock) Read(b []byte) (int, error) {
 	return r.n, r.err
 }
 
+func TestReadMessage(t *testing.T) {
+	t.Parallel()
+	t.Run("ReturnsErrorWhenReaderReadFails", func(t *testing.T) {
+		t.Parallel()
+		reader := &readerMock{n: 0, err: errMock, val: nil}
+		if _, err := com.ReadMessage[com.JoinContent](reader); err == nil {
+			t.Fatal("Expected an error, but nil was returned!")
+		}
+	})
+	t.Run("ReturnsErrorWhenUnmarshallingFails", func(t *testing.T) {
+		t.Parallel()
+		data := `{"type":"JOIN","content":{invalid}}`
+		reader := &readerMock{n: len(data), err: nil, val: []byte(data)}
+		if _, err := com.ReadMessage[com.JoinContent](reader); err == nil {
+			t.Fatal("Expected an error, but nil was returned!")
+		}
+	})
+	t.Run("ReturnsResultWhenSuccess", func(t *testing.T) {
+		t.Parallel()
+		expectedResult := struct{}{}
+		data := `{"type":"JOIN","content":{"name":"donald"}}`
+		reader := &readerMock{n: len(data), err: nil, val: []byte(data)}
+		val, err := com.ReadMessage[struct{}](reader)
+		if err != nil {
+			t.Fatalf("Expected no error, but error was returned: %s", err)
+		}
+		if *val != expectedResult {
+			t.Fatalf("Expected %s but received %s", expectedResult, *val)
+		}
+	})
+}
+
 func TestRead(t *testing.T) {
 	t.Parallel()
 	t.Run("ReturnsErrorWhenReaderReadFails", func(t *testing.T) {

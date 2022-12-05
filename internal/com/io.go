@@ -32,6 +32,19 @@ func Write[T any](writer io.Writer, data T) error {
 	return nil
 }
 
+// ReadMessage reads message from the reader and unmarshals it as a JSON data.
+func ReadMessage[T any](reader io.Reader) (*T, error) {
+	message, err := Read[Message](reader)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read %v message. %w", message, err)
+	}
+	content := new(T)
+	if err := json.Unmarshal(message.Content, &content); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal message content from JSON. %w", err)
+	}
+	return content, nil
+}
+
 // Read reads data from the reader and unmarshals it as a JSON data.
 func Read[T any](reader io.Reader) (*T, error) {
 	buffer := make([]byte, bufferSize)
