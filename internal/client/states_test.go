@@ -53,7 +53,8 @@ func TestConnected(t *testing.T) {
 	})
 	t.Run("ReturnErrorWhenInputValidationFails", func(t *testing.T) {
 		t.Parallel()
-		ctx := client.NewContext(succeedingReaderMock(strings.Repeat("s", client.NameMaxLength+1)), new(readWriterMock))
+		name := strings.Repeat("s", client.NameMaxLength+1)
+		ctx := client.NewContext(succeedingReaderMock(name), new(readWriterMock))
 		result, err := client.Connected(ctx)
 		if result != nil {
 			t.Fatalf("Expected nil result, but %v was returned!", result)
@@ -64,9 +65,8 @@ func TestConnected(t *testing.T) {
 	})
 	t.Run("ReturnErrorWhenWriteMessageFails", func(t *testing.T) {
 		t.Parallel()
-		ctx := client.NewContext(
-			succeedingReaderMock(strings.Repeat("s", client.NameMaxLength)),
-			newWritableConnMock(errMock))
+		name := strings.Repeat("s", client.NameMaxLength)
+		ctx := client.NewContext(succeedingReaderMock(name), newWritableConnMock(errMock))
 		result, err := client.Connected(ctx)
 		if result != nil {
 			t.Fatalf("Expected nil result, but %v was returned!", result)
@@ -77,9 +77,8 @@ func TestConnected(t *testing.T) {
 	})
 	t.Run("ReturnStateWhenSuccess", func(t *testing.T) {
 		t.Parallel()
-		ctx := client.NewContext(
-			succeedingReaderMock(strings.Repeat("s", client.NameMaxLength)),
-			newWritableConnMock(nil))
+		name := strings.Repeat("s", client.NameMaxLength)
+		ctx := client.NewContext(succeedingReaderMock(name), newWritableConnMock(nil))
 		result, err := client.Connected(ctx)
 		if result == nil {
 			t.Fatalf("Expected non-nil result, but nil was returned!")
