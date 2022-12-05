@@ -1,8 +1,6 @@
 package server
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"net"
 
@@ -35,7 +33,7 @@ func processConnection(disconnect chan<- net.Conn, player *Player, matchmaker *m
 		player.Conn.Close()
 	}()
 
-	joinContent, err := readJoin(player.Conn)
+	joinContent, err := com.ReadMessage[com.JoinContent](player.Conn)
 	if err != nil {
 		return
 	}
@@ -50,7 +48,7 @@ func processConnection(disconnect chan<- net.Conn, player *Player, matchmaker *m
 		outbox := make(chan game.Selection)
 		go func() {
 			for {
-				selection, err := readSelect(player.Conn)
+				selection, err := com.ReadMessage[com.SelectContent](player.Conn)
 				if err != nil {
 					disconnect <- player.Conn
 					return
@@ -71,28 +69,4 @@ func processConnection(disconnect chan<- net.Conn, player *Player, matchmaker *m
 			return
 		}
 	}
-}
-
-func readJoin(conn net.Conn) (com.JoinContent, error) {
-	message, err := com.Read[com.Message](conn)
-	if err != nil {
-		return com.JoinContent{}, fmt.Errorf("failed to read JOIN message. %w", err)
-	}
-	content := com.JoinContent{Name: ""}
-	if err := json.Unmarshal(message.Content, &content); err != nil {
-		return com.JoinContent{}, fmt.Errorf("failed to read JOIN content. %w", err)
-	}
-	return content, nil
-}
-
-func readSelect(conn net.Conn) (com.SelectContent, error) {
-	message, err := com.Read[com.Message](conn)
-	if err != nil {
-		return com.SelectContent{}, fmt.Errorf("failed to read SELECT message. %w", err)
-	}
-	content := com.SelectContent{Selection: ""}
-	if err := json.Unmarshal(message.Content, &content); err != nil {
-		return com.SelectContent{}, fmt.Errorf("failed to read SELECT content. %w", err)
-	}
-	return content, nil
 }
