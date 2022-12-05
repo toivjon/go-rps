@@ -36,7 +36,7 @@ func Run(ctx Context, state State) error {
 
 func Connected(ctx Context) (State, error) {
 	log.Printf("Enter your name:")
-	name, err := waitInput(ctx)
+	name, err := waitInput(ctx.Input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read user input to as username. %w", err)
 	}
@@ -62,7 +62,7 @@ func Joined(ctx Context) (State, error) {
 
 func Started(ctx Context) (State, error) {
 	log.Println("Please type the selection ('r', 'p', 's') and press enter")
-	selection, err := waitSelection(ctx)
+	selection, err := waitSelection(ctx.Input)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read selection. %w", err)
 	}
@@ -98,16 +98,16 @@ func waitMessage[T any](conn io.ReadWriter) (*T, error) {
 	return content, nil
 }
 
-func waitInput(ctx Context) (string, error) {
-	scanner := bufio.NewScanner(ctx.Input)
+func waitInput(reader io.Reader) (string, error) {
+	scanner := bufio.NewScanner(reader)
 	if !scanner.Scan() {
 		return "", fmt.Errorf("failed to scan user input. %w", scanner.Err())
 	}
 	return scanner.Text(), nil
 }
 
-func waitSelection(ctx Context) (game.Selection, error) {
-	input, err := waitInput(ctx)
+func waitSelection(reader io.Reader) (game.Selection, error) {
+	input, err := waitInput(reader)
 	if err != nil {
 		return "", fmt.Errorf("failed to scan user input for selection. %w", err)
 	}
