@@ -22,6 +22,7 @@ const NameMaxLength = 64
 // State represents a reference to a client state which may return a next state or an error.
 type State func(ctx Context) (State, error)
 
+// Run executes the client logic with the given context and the provided initial state.
 func Run(ctx Context, state State) error {
 	for state != nil {
 		nextState, err := state(ctx)
@@ -33,6 +34,7 @@ func Run(ctx Context, state State) error {
 	return nil
 }
 
+// Connected contains the logic when the client has been connected but not yet joined.
 func Connected(ctx Context) (State, error) {
 	log.Printf("Enter your name:")
 	name, err := waitInput(ctx.Input)
@@ -49,6 +51,7 @@ func Connected(ctx Context) (State, error) {
 	return Joined, nil
 }
 
+// Joined contains the logic when the client has been joined but game session round is not yet started.
 func Joined(ctx Context) (State, error) {
 	log.Printf("Waiting for an opponent. Please wait...")
 	message, err := com.ReadMessage[com.StartContent](ctx.Conn)
@@ -59,6 +62,7 @@ func Joined(ctx Context) (State, error) {
 	return Started, nil
 }
 
+// Started contains the logic when the game session round has been started.
 func Started(ctx Context) (State, error) {
 	log.Println("Please type the selection ('r', 'p', 's') and press enter")
 	selection, err := waitSelection(ctx.Input)
@@ -71,6 +75,7 @@ func Started(ctx Context) (State, error) {
 	return Waiting, nil
 }
 
+// Waiting contains the logic when the client waits for the server to send round results.
 func Waiting(ctx Context) (State, error) {
 	log.Println("Waiting for game result. Please wait...")
 	message, err := com.ReadMessage[com.ResultContent](ctx.Conn)
