@@ -100,13 +100,7 @@ func TestJoined(t *testing.T) {
 	t.Parallel()
 	t.Run("ReturnErrorWhenReadFails", func(t *testing.T) {
 		t.Parallel()
-		ctx := client.NewContext(
-			new(readerMock),
-			readWriterMock{
-				readerMock: failingReaderMock(errMock),
-				writerMock: writerMock{n: 0, err: nil},
-			},
-		)
+		ctx := client.NewContext(new(readerMock), newReadableConnMock("", errMock))
 		result, err := client.Joined(ctx)
 		if result != nil {
 			t.Fatalf("Expected nil result, but %v was returned!", result)
@@ -118,13 +112,7 @@ func TestJoined(t *testing.T) {
 	t.Run("ReturnErrorWhenUnmarshalFails", func(t *testing.T) {
 		t.Parallel()
 		data := `{"type":"JOIN","content":"non-json"}`
-		ctx := client.NewContext(
-			new(readerMock),
-			readWriterMock{
-				readerMock: succeedingReaderMock(data),
-				writerMock: writerMock{n: 0, err: nil},
-			},
-		)
+		ctx := client.NewContext(new(readerMock), newReadableConnMock(data, nil))
 		result, err := client.Joined(ctx)
 		if result != nil {
 			t.Fatalf("Expected nil result, but %v was returned!", result)
@@ -136,13 +124,7 @@ func TestJoined(t *testing.T) {
 	t.Run("ReturnStateWhenSuccess", func(t *testing.T) {
 		t.Parallel()
 		data := `{"type":"JOIN","content":{"name":"donald"}}`
-		ctx := client.NewContext(
-			new(readerMock),
-			readWriterMock{
-				readerMock: succeedingReaderMock(data),
-				writerMock: writerMock{n: 0, err: nil},
-			},
-		)
+		ctx := client.NewContext(new(readerMock), newReadableConnMock(data, nil))
 		result, err := client.Joined(ctx)
 		if result == nil {
 			t.Fatal("Expected non-nil result, but nil was returned!")
@@ -215,13 +197,7 @@ func TestWaiting(t *testing.T) {
 	t.Parallel()
 	t.Run("ReturnErrorWhenReadFails", func(t *testing.T) {
 		t.Parallel()
-		ctx := client.NewContext(
-			new(readerMock),
-			readWriterMock{
-				readerMock: failingReaderMock(errMock),
-				writerMock: writerMock{n: 0, err: nil},
-			},
-		)
+		ctx := client.NewContext(new(readerMock), newReadableConnMock("", errMock))
 		result, err := client.Waiting(ctx)
 		if result != nil {
 			t.Fatalf("Expected nil result, but %v was returned!", result)
@@ -233,7 +209,7 @@ func TestWaiting(t *testing.T) {
 	t.Run("ReturnErrorWhenUnmarshalFails", func(t *testing.T) {
 		t.Parallel()
 		data := `{"type":"RESULT","content":"non-json"}`
-		ctx := client.NewContext(new(readerMock), newReadableConnMock(data))
+		ctx := client.NewContext(new(readerMock), newReadableConnMock(data, nil))
 		result, err := client.Waiting(ctx)
 		if result != nil {
 			t.Fatalf("Expected nil result, but %v was returned!", result)
@@ -245,7 +221,7 @@ func TestWaiting(t *testing.T) {
 	t.Run("ReturnStateWhenSuccessWithDraw", func(t *testing.T) {
 		t.Parallel()
 		data := `{"type":"RESULT","content":{"opponentSelection":"s","result":"DRAW"}}`
-		ctx := client.NewContext(new(readerMock), newReadableConnMock(data))
+		ctx := client.NewContext(new(readerMock), newReadableConnMock(data, nil))
 		result, err := client.Waiting(ctx)
 		if result == nil {
 			t.Fatal("Expected non-nil result, but nil was returned!")
@@ -257,7 +233,7 @@ func TestWaiting(t *testing.T) {
 	t.Run("ReturnNilWhenSuccessWithNoDraw", func(t *testing.T) {
 		t.Parallel()
 		data := `{"type":"RESULT","content":{"opponentSelection":"s","result":"WIN"}}`
-		ctx := client.NewContext(new(readerMock), newReadableConnMock(data))
+		ctx := client.NewContext(new(readerMock), newReadableConnMock(data, nil))
 		result, err := client.Waiting(ctx)
 		if result != nil {
 			t.Fatalf("Expected nil result, but %v was returned!", result)
@@ -268,12 +244,12 @@ func TestWaiting(t *testing.T) {
 	})
 }
 
-func newReadableConnMock(data string) readWriterMock {
+func newReadableConnMock(data string, err error) readWriterMock {
 	data += "\n"
 	return readWriterMock{
 		readerMock: readerMock{
 			n:   len(data),
-			err: nil,
+			err: err,
 			val: []byte(data),
 		}, writerMock: writerMock{
 			n:   0,
