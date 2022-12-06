@@ -14,13 +14,13 @@ func Run(port uint, host string) error {
 	defer listener.Close()
 	log.Printf("Waiting for clients on port: %d", port)
 
+	var waitingPlayer *Player
 	accept := newAccept(listener)
 	join := make(chan net.Conn)
 	disconnect := make(chan net.Conn)
 
 	conns := make(map[net.Conn]*Player)
 
-	matchmaker := new(matchmaker)
 	for {
 		select {
 		case conn := <-accept:
@@ -28,13 +28,23 @@ func Run(port uint, host string) error {
 			log.Printf("Connection %v added (conns: %d)", conn, len(conns))
 			go processConnection(disconnect, join, conns[conn])
 		case conn := <-join:
-			if err := matchmaker.Enter(conns[conn]); err != nil {
-				log.Printf("Player %q failed to enter matchmaker.", conns[conn].Name)
+			player := conns[conn]
+			if waitingPlayer == nil {
+				waitingPlayer = player
+			} else {
+				session := NewSession(player, waitingPlayer)
+				waitingPlayer = nil
+				if err := session.Start(); err != nil {
+					return err
+				}
 			}
 		case conn := <-disconnect:
 			if player, found := conns[conn]; found {
 				player.Session.Close()
-				matchmaker.Leave(player)
+				if waitingPlayer == player {
+					waitingPlayer = nil
+					log.Printf("Player %#p (%s) left matchmaker.", &player, player.Name)
+				}
 				log.Printf("Player %q left.", conns[conn].Name)
 				delete(conns, conn)
 				log.Printf("Connection %v removed (conns: %d)", conn, len(conns))
