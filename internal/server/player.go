@@ -27,7 +27,7 @@ func NewPlayer(conn net.Conn) *Player {
 	}
 }
 
-func processConnection(disconnect chan<- net.Conn, join chan<- net.Conn, player *Player) {
+func processConnection(disconnect, join chan<- net.Conn, player *Player) {
 	defer func() {
 		disconnect <- player.Conn
 		player.Conn.Close()
