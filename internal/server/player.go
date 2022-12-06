@@ -27,7 +27,7 @@ func NewPlayer(conn net.Conn) *Player {
 	}
 }
 
-func processConnection(disconnect chan<- net.Conn, player *Player, matchmaker *matchmaker) {
+func processConnection(disconnect chan<- net.Conn, join chan<- net.Conn, player *Player) {
 	defer func() {
 		disconnect <- player.Conn
 		player.Conn.Close()
@@ -39,10 +39,7 @@ func processConnection(disconnect chan<- net.Conn, player *Player, matchmaker *m
 	}
 	player.Name = joinContent.Name
 
-	if err := matchmaker.Enter(player); err != nil {
-		log.Printf("Player %q Failed to enter matchmaker. %s", player.Name, err)
-		return
-	}
+	join <- player.Conn
 
 	reader := func() chan game.Selection {
 		outbox := make(chan game.Selection)
