@@ -18,6 +18,7 @@ func main() {
 	flag.Parse()
 
 	log.Println("Welcome to the RPS server")
+	server := server.NewServer()
 	if err := server.Run(*port, *host); err != nil {
 		log.Fatalf("Server was closed due an error: %v", err)
 	}
