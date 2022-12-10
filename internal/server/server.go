@@ -83,7 +83,7 @@ func newAccept(listener net.Listener) <-chan net.Conn {
 }
 
 func (s *Server) handleAccept(conn net.Conn) {
-	s.conns[conn] = &Client{conn: conn}
+	s.conns[conn] = &Client{conn: conn, name: "", session: nil}
 	go s.processClient(conn)
 	log.Printf("Connection %#p added (conns: %d).", conn, len(s.conns))
 }
@@ -100,19 +100,22 @@ func (s *Server) processClient(conn net.Conn) {
 		}
 		switch message.Type {
 		case com.TypeJoin:
-			content := com.JoinContent{}
+			content := new(com.JoinContent)
 			if err := json.Unmarshal(message.Content, &content); err != nil {
 				log.Printf("Failed to unmarshal %T message content. %s", content, err)
 				return
 			}
-			s.joinCh <- Message[com.JoinContent]{conn: conn, content: content}
+			s.joinCh <- Message[com.JoinContent]{conn: conn, content: *content}
 		case com.TypeSelect:
-			content := com.SelectContent{}
+			content := new(com.SelectContent)
 			if err := json.Unmarshal(message.Content, &content); err != nil {
 				log.Printf("Failed to unmarshal %T message content. %s", content, err)
 				return
 			}
-			s.selectCh <- Message[com.SelectContent]{conn: conn, content: content}
+			s.selectCh <- Message[com.SelectContent]{conn: conn, content: *content}
+		case com.TypeResult, com.TypeStart:
+			log.Printf("Connection %#p received unsupported message type %s!", conn, message.Type)
+			return
 		}
 	}
 }
@@ -124,7 +127,7 @@ func (s *Server) handleJoin(conn net.Conn, content com.JoinContent) {
 		log.Printf("Connection %#p joined (name: %s)", conn, content.Name)
 
 		for _, otherClient := range s.conns {
-			// TODO improve the way how to detect that otherClient actually has joined! Now we use name here!
+			// ... improve the way how to detect that otherClient actually has joined! Now we use name here!
 			if otherClient.session == nil && otherClient != client && otherClient.name != "" {
 				if err := s.startSession(client, otherClient); err != nil {
 					log.Printf("Failed to start session for connection %#p and %#p", client.conn, otherClient.conn)
@@ -135,7 +138,7 @@ func (s *Server) handleJoin(conn net.Conn, content com.JoinContent) {
 }
 
 func (s *Server) startSession(cli1, cli2 *Client) error {
-	session := &Session{cli1: cli1, cli2: cli2}
+	session := &Session{cli1: cli1, cli2: cli2, cli1Selection: game.SelectionNone, cli2Selection: game.SelectionNone}
 	if err := com.WriteMessage(cli1.conn, com.TypeStart, com.StartContent{OpponentName: cli2.name}); err != nil {
 		return fmt.Errorf("failed to write START message for conn %#p. %w", cli1.conn, err)
 	}
@@ -150,7 +153,7 @@ func (s *Server) startSession(cli1, cli2 *Client) error {
 	return nil
 }
 
-func (s *Server) handleSelect(conn net.Conn, content com.SelectContent) error {
+func (s *Server) handleSelect(conn net.Conn, content com.SelectContent) {
 	if client, ok := s.conns[conn]; ok {
 		log.Printf("Connection %#p selection received (selection: %s)", conn, content.Selection)
 		session := client.session
@@ -163,36 +166,43 @@ func (s *Server) handleSelect(conn net.Conn, content com.SelectContent) error {
 		selection1 := session.cli1Selection
 		selection2 := session.cli2Selection
 		if selection1 != game.SelectionNone && selection2 != game.SelectionNone {
-			result1 := game.ResultDraw
-			result2 := game.ResultDraw
-			switch {
-			case selection1 == selection2:
-				break
-			case selection1.Beats(selection2):
-				result1 = game.ResultWin
-				result2 = game.ResultLose
-			default:
-				result1 = game.ResultLose
-				result2 = game.ResultWin
-			}
-			conn1 := session.cli1.conn
-			conn2 := session.cli2.conn
-			messageContent := com.ResultContent{OpponentSelection: selection2, Result: result1}
-			if err := com.WriteMessage(conn1, com.TypeResult, messageContent); err != nil {
-				return fmt.Errorf("failed to write RESULT message for conn %#p. %w", conn1, err)
-			}
-			messageContent = com.ResultContent{OpponentSelection: selection1, Result: result2}
-			if err := com.WriteMessage(conn2, com.TypeResult, messageContent); err != nil {
-				return fmt.Errorf("failed to write RESULT message for conn  %#p. %w", conn2, err)
-			}
-			log.Printf("Session %#p round result %#p:%s and %#p:%s", session, conn1, result1, conn2, result2)
-			if result1 == game.ResultDraw && result2 == game.ResultDraw {
-				session.cli1Selection = game.SelectionNone
-				session.cli2Selection = game.SelectionNone
-			}
+			s.resolveResult(session, selection1, selection2)
 		}
 	}
-	return nil
+}
+
+func (s *Server) resolveResult(session *Session, selection1, selection2 game.Selection) {
+	result1 := game.ResultDraw
+	result2 := game.ResultDraw
+	switch {
+	case selection1 == selection2:
+		break
+	case selection1.Beats(selection2):
+		result1 = game.ResultWin
+		result2 = game.ResultLose
+	default:
+		result1 = game.ResultLose
+		result2 = game.ResultWin
+	}
+	conn1 := session.cli1.conn
+	conn2 := session.cli2.conn
+	messageContent := com.ResultContent{OpponentSelection: selection2, Result: result1}
+	if err := com.WriteMessage(conn1, com.TypeResult, messageContent); err != nil {
+		log.Printf("Failed to write RESULT message for conn %#p. %s", conn1, err)
+		s.closeSession(session)
+		return
+	}
+	messageContent = com.ResultContent{OpponentSelection: selection1, Result: result2}
+	if err := com.WriteMessage(conn2, com.TypeResult, messageContent); err != nil {
+		log.Printf("failed to write RESULT message for conn  %#p. %s", conn2, err)
+		s.closeSession(session)
+		return
+	}
+	log.Printf("Session %#p round result %#p:%s and %#p:%s", session, conn1, result1, conn2, result2)
+	if result1 == game.ResultDraw && result2 == game.ResultDraw {
+		session.cli1Selection = game.SelectionNone
+		session.cli2Selection = game.SelectionNone
+	}
 }
 
 func (s *Server) handleLeave(conn net.Conn) {
