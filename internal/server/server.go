@@ -187,13 +187,13 @@ func (s *Server) resolveResult(session *Session, selection1, selection2 game.Sel
 	messageContent := com.ResultContent{OpponentSelection: selection2, Result: result1}
 	if err := com.WriteMessage(conn1, com.TypeResult, messageContent); err != nil {
 		log.Printf("Failed to write RESULT message for conn %#p. %s", conn1, err)
-		s.closeSession(session)
+		session.Close()
 		return
 	}
 	messageContent = com.ResultContent{OpponentSelection: selection1, Result: result2}
 	if err := com.WriteMessage(conn2, com.TypeResult, messageContent); err != nil {
 		log.Printf("failed to write RESULT message for conn  %#p. %s", conn2, err)
-		s.closeSession(session)
+		session.Close()
 		return
 	}
 	log.Printf("Session %#p round result %#p:%s and %#p:%s", session, conn1, result1, conn2, result2)
@@ -207,16 +207,8 @@ func (s *Server) handleLeave(conn net.Conn) {
 	if client, ok := s.conns[conn]; ok {
 		delete(s.conns, conn)
 		if client.session != nil {
-			s.closeSession(client.session)
+			client.session.Close()
 		}
 		log.Printf("Connection %#p removed (conns: %d).", conn, len(s.conns))
 	}
-}
-
-func (s *Server) closeSession(session *Session) {
-	session.cli1.session = nil
-	session.cli2.session = nil
-	log.Printf("Session %#p closed (conn1: %#p conn2: %#p)", session, &session.cli1.conn, &session.cli2.conn)
-	session.cli1.conn.Close()
-	session.cli2.conn.Close()
 }
