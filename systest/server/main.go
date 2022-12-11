@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -8,6 +9,8 @@ import (
 	"net"
 	"os"
 	"os/exec"
+	"runtime"
+	"syscall"
 	"time"
 
 	"github.com/toivjon/go-rps/internal/com"
@@ -15,11 +18,12 @@ import (
 )
 
 const (
-	serverHost   = "localhost"
-	serverPort   = 7777
-	startupDelay = 2 * time.Second
-	name1        = "donald"
-	name2        = "mickey"
+	serverHost    = "localhost"
+	serverPort    = 7777
+	startupDelay  = 2 * time.Second
+	serverTimeout = 10 * time.Second
+	name1         = "donald"
+	name2         = "mickey"
 )
 
 func main() {
@@ -33,8 +37,8 @@ func main() {
 
 func testPlaySessionWithOneRound() {
 	log.Println("Test Play Session With One Round")
-	server := startServer()
-	defer closeServer(server)
+	server, cancel := startServer()
+	defer closeServer(server, cancel)
 	time.Sleep(startupDelay)
 
 	client1 := newClient()
@@ -61,8 +65,8 @@ func testPlaySessionWithOneRound() {
 
 func testPlaySessionWithManyRounds() {
 	log.Println("Test Play Session With Many Rounds")
-	server := startServer()
-	defer closeServer(server)
+	server, cancel := startServer()
+	defer closeServer(server, cancel)
 	time.Sleep(startupDelay)
 
 	client1 := newClient()
@@ -109,8 +113,8 @@ func testPlaySessionWithManyRounds() {
 
 func testPlayManySessionsConcurrently() {
 	log.Println("Test Play Two Sessions Concurrently")
-	server := startServer()
-	defer closeServer(server)
+	server, cancel := startServer()
+	defer closeServer(server, cancel)
 	time.Sleep(startupDelay)
 
 	client1 := newClient()
@@ -158,8 +162,8 @@ func testPlayManySessionsConcurrently() {
 
 func testSessionEndsWhenClientDisconnects() {
 	log.Println("Test Session Ends When Client Disconnects")
-	server := startServer()
-	defer closeServer(server)
+	server, cancel := startServer()
+	defer closeServer(server, cancel)
 	time.Sleep(startupDelay)
 
 	client1 := newClient()
@@ -208,19 +212,33 @@ func assertResult(result com.ResultContent, expectedOpponentSelection game.Selec
 	}
 }
 
-func startServer() *exec.Cmd {
-	cmd := exec.Command("./bin/server")
+func startServer() (*exec.Cmd, context.CancelFunc) {
+	// We want to automatically kill the server if the process jams or if it cannot be gracefully closed.
+	ctx, cancel := context.WithTimeout(context.Background(), serverTimeout)
+
+	cmd := exec.CommandContext(ctx, "./bin/server")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+	cmd.SysProcAttr = new(syscall.SysProcAttr)
+	cmd.SysProcAttr.CreationFlags = syscall.CREATE_NEW_PROCESS_GROUP
+
 	if err := cmd.Start(); err != nil {
 		log.Panicf("Failed to start server process. %s", err)
 	}
-	return cmd
+	return cmd, cancel
 }
 
-func closeServer(server *exec.Cmd) {
-	if err := server.Process.Kill(); err != nil {
-		log.Panicf("Failed to kill server process. %s", err)
+func closeServer(server *exec.Cmd, cancel context.CancelFunc) {
+	defer cancel()
+	if runtime.GOOS == "windows" {
+		terminateProcess(server.Process.Pid)
+		if _, err := server.Process.Wait(); err != nil {
+			log.Panicf("Failed to wait process. %s", err)
+		}
+	} else {
+		if err := server.Process.Kill(); err != nil {
+			log.Panicf("Failed to kill server process. %s", err)
+		}
 	}
 }
 
@@ -274,4 +292,25 @@ func readResult(reader io.Reader) com.ResultContent {
 		log.Panicf("failed to read RESULT content. %s", err)
 	}
 	return content
+}
+
+// terminateProcess is a utility to send a termination signal to process in a Windows environment.
+func terminateProcess(pid int) {
+	dll, err := syscall.LoadDLL("kernel32.dll")
+	if err != nil {
+		log.Panicf("Failed to load kernel32.dll. %s", err)
+	}
+	defer func() {
+		if err := dll.Release(); err != nil {
+			log.Printf("Failed to release kernel32.dll. %s", err)
+		}
+	}()
+	proc, err := dll.FindProc("GenerateConsoleCtrlEvent")
+	if err != nil {
+		log.Panicf("Failed to create console CTRL event. %s", err)
+	}
+	result, _, e := proc.Call(syscall.CTRL_BREAK_EVENT, uintptr(pid))
+	if result == 0 {
+		log.Panicf("Failed to call break event. %s", e)
+	}
 }

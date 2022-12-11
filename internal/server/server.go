@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"github.com/toivjon/go-rps/internal/com"
 	"github.com/toivjon/go-rps/internal/game"
@@ -44,7 +45,7 @@ func NewServer() Server {
 	}
 }
 
-func (s *Server) Run(port uint, host string) error {
+func (s *Server) Run(port uint, host string, shutdown chan os.Signal) error {
 	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
 	if err != nil {
 		return fmt.Errorf("failed to start listening TCP socket on port %d. %w", port, err)
@@ -63,6 +64,10 @@ func (s *Server) Run(port uint, host string) error {
 			s.handleSelect(message.conn, message.content)
 		case conn := <-s.leaveCh:
 			s.handleLeave(conn)
+		case <-shutdown:
+			log.Printf("Shutting down server...")
+			// ...
+			return nil
 		}
 	}
 }
