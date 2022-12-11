@@ -41,6 +41,53 @@ func (s *Session) Start() error {
 	return nil
 }
 
+// Select applies the given selection for the target client for the ongoing RPS game round.
+func (s *Session) Select(cli *Client, selection game.Selection) {
+	switch cli.conn {
+	case s.cli1.conn:
+		s.cli1Selection = selection
+	case s.cli2.conn:
+		s.cli2Selection = selection
+	}
+	if s.cli1Selection != game.SelectionNone && s.cli2Selection != game.SelectionNone {
+		s.resolveResult()
+	}
+}
+
+func (s *Session) resolveResult() {
+	result1 := game.ResultDraw
+	result2 := game.ResultDraw
+	switch {
+	case s.cli1Selection == s.cli2Selection:
+		break
+	case s.cli1Selection.Beats(s.cli2Selection):
+		result1 = game.ResultWin
+		result2 = game.ResultLose
+	default:
+		result1 = game.ResultLose
+		result2 = game.ResultWin
+	}
+	conn1 := s.cli1.conn
+	conn2 := s.cli2.conn
+	messageContent := com.ResultContent{OpponentSelection: s.cli2Selection, Result: result1}
+	if err := com.WriteMessage(conn1, com.TypeResult, messageContent); err != nil {
+		log.Printf("Failed to write RESULT message for conn %#p. %s", conn1, err)
+		s.Close()
+		return
+	}
+	messageContent = com.ResultContent{OpponentSelection: s.cli1Selection, Result: result2}
+	if err := com.WriteMessage(conn2, com.TypeResult, messageContent); err != nil {
+		log.Printf("failed to write RESULT message for conn  %#p. %s", conn2, err)
+		s.Close()
+		return
+	}
+	log.Printf("Session %#p round result %#p:%s and %#p:%s", s, conn1, result1, conn2, result2)
+	if result1 == game.ResultDraw && result2 == game.ResultDraw {
+		s.cli1Selection = game.SelectionNone
+		s.cli2Selection = game.SelectionNone
+	}
+}
+
 // Close closes the target session by removing session references and closing attached connections.
 func (s *Session) Close() {
 	s.cli1.session = nil

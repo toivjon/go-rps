@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/toivjon/go-rps/internal/com"
-	"github.com/toivjon/go-rps/internal/game"
 )
 
 type Server struct {
@@ -139,52 +138,7 @@ func (s *Server) handleJoin(conn net.Conn, content com.JoinContent) {
 func (s *Server) handleSelect(conn net.Conn, content com.SelectContent) {
 	if client, ok := s.conns[conn]; ok {
 		log.Printf("Connection %#p selection received (selection: %s)", conn, content.Selection)
-		session := client.session
-		switch client.conn {
-		case session.cli1.conn:
-			session.cli1Selection = content.Selection
-		case session.cli2.conn:
-			session.cli2Selection = content.Selection
-		}
-		selection1 := session.cli1Selection
-		selection2 := session.cli2Selection
-		if selection1 != game.SelectionNone && selection2 != game.SelectionNone {
-			s.resolveResult(session, selection1, selection2)
-		}
-	}
-}
-
-func (s *Server) resolveResult(session *Session, selection1, selection2 game.Selection) {
-	result1 := game.ResultDraw
-	result2 := game.ResultDraw
-	switch {
-	case selection1 == selection2:
-		break
-	case selection1.Beats(selection2):
-		result1 = game.ResultWin
-		result2 = game.ResultLose
-	default:
-		result1 = game.ResultLose
-		result2 = game.ResultWin
-	}
-	conn1 := session.cli1.conn
-	conn2 := session.cli2.conn
-	messageContent := com.ResultContent{OpponentSelection: selection2, Result: result1}
-	if err := com.WriteMessage(conn1, com.TypeResult, messageContent); err != nil {
-		log.Printf("Failed to write RESULT message for conn %#p. %s", conn1, err)
-		session.Close()
-		return
-	}
-	messageContent = com.ResultContent{OpponentSelection: selection1, Result: result2}
-	if err := com.WriteMessage(conn2, com.TypeResult, messageContent); err != nil {
-		log.Printf("failed to write RESULT message for conn  %#p. %s", conn2, err)
-		session.Close()
-		return
-	}
-	log.Printf("Session %#p round result %#p:%s and %#p:%s", session, conn1, result1, conn2, result2)
-	if result1 == game.ResultDraw && result2 == game.ResultDraw {
-		session.cli1Selection = game.SelectionNone
-		session.cli2Selection = game.SelectionNone
+		client.session.Select(client, content.Selection)
 	}
 }
 
