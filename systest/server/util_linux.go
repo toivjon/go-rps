@@ -2,6 +2,13 @@
 
 package main
 
+import (
+	"context"
+	"log"
+	"os"
+	"os/exec"
+)
+
 func startServer() (*exec.Cmd, context.CancelFunc) {
 	// We want to automatically kill the server if the process jams or if it cannot be gracefully closed.
 	ctx, cancel := context.WithTimeout(context.Background(), serverTimeout)
