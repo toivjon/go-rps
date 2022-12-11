@@ -16,14 +16,17 @@ type Session struct {
 	cli2Selection game.Selection
 }
 
-// NewSession builds a new session for  the given clients.
+// NewSession builds a new session for the given clients and attachs the session relation.
 func NewSession(cli1, cli2 *Client) *Session {
-	return &Session{
+	session := &Session{
 		cli1:          cli1,
 		cli2:          cli2,
 		cli1Selection: game.SelectionNone,
 		cli2Selection: game.SelectionNone,
 	}
+	cli1.session = session
+	cli2.session = session
+	return session
 }
 
 // Start starts the target session by notifying target clients to start the actual gaming.
@@ -34,8 +37,6 @@ func (s *Session) Start() error {
 	if err := com.WriteMessage(s.cli2.conn, com.TypeStart, com.StartContent{OpponentName: s.cli1.name}); err != nil {
 		return fmt.Errorf("failed to write START message for conn %#p. %w", s.cli2.conn, err)
 	}
-	s.cli1.session = s
-	s.cli2.session = s
 	log.Printf("Session %#p started (conn1: %#p conn2: %#p)", s, s.cli1.conn, s.cli2.conn)
 	return nil
 }
