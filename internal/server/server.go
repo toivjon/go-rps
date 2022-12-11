@@ -24,13 +24,6 @@ type Client struct {
 	session *Session
 }
 
-type Session struct {
-	cli1          *Client
-	cli2          *Client
-	cli1Selection game.Selection
-	cli2Selection game.Selection
-}
-
 type Message[T any] struct {
 	conn    net.Conn
 	content T
@@ -143,7 +136,7 @@ func (s *Server) handleJoin(conn net.Conn, content com.JoinContent) {
 }
 
 func (s *Server) startSession(cli1, cli2 *Client) error {
-	session := &Session{cli1: cli1, cli2: cli2, cli1Selection: game.SelectionNone, cli2Selection: game.SelectionNone}
+	session := NewSession(cli1, cli2)
 	if err := com.WriteMessage(cli1.conn, com.TypeStart, com.StartContent{OpponentName: cli2.name}); err != nil {
 		return fmt.Errorf("failed to write START message for conn %#p. %w", cli1.conn, err)
 	}
