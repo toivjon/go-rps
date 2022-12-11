@@ -127,28 +127,13 @@ func (s *Server) handleJoin(conn net.Conn, content com.JoinContent) {
 		for _, otherClient := range s.conns {
 			// ... improve the way how to detect that otherClient actually has joined! Now we use name here!
 			if otherClient.session == nil && otherClient != client && otherClient.name != "" {
-				if err := s.startSession(client, otherClient); err != nil {
+				session := NewSession(client, otherClient)
+				if err := session.Start(); err != nil {
 					log.Printf("Failed to start session for connection %#p and %#p", client.conn, otherClient.conn)
 				}
 			}
 		}
 	}
-}
-
-func (s *Server) startSession(cli1, cli2 *Client) error {
-	session := NewSession(cli1, cli2)
-	if err := com.WriteMessage(cli1.conn, com.TypeStart, com.StartContent{OpponentName: cli2.name}); err != nil {
-		return fmt.Errorf("failed to write START message for conn %#p. %w", cli1.conn, err)
-	}
-	if err := com.WriteMessage(cli2.conn, com.TypeStart, com.StartContent{OpponentName: cli1.name}); err != nil {
-		return fmt.Errorf("failed to write START message for conn %#p. %w", cli2.conn, err)
-	}
-	cli1.session = session
-	cli2.session = session
-	s.conns[cli1.conn] = cli1
-	s.conns[cli2.conn] = cli2
-	log.Printf("Session %#p started (conn1: %#p conn2: %#p)", session, cli1.conn, cli2.conn)
-	return nil
 }
 
 func (s *Server) handleSelect(conn net.Conn, content com.SelectContent) {

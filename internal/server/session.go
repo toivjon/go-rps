@@ -1,8 +1,10 @@
 package server
 
 import (
+	"fmt"
 	"log"
 
+	"github.com/toivjon/go-rps/internal/com"
 	"github.com/toivjon/go-rps/internal/game"
 )
 
@@ -22,6 +24,20 @@ func NewSession(cli1, cli2 *Client) *Session {
 		cli1Selection: game.SelectionNone,
 		cli2Selection: game.SelectionNone,
 	}
+}
+
+// Start starts the target session by notifying target clients to start the actual gaming.
+func (s *Session) Start() error {
+	if err := com.WriteMessage(s.cli1.conn, com.TypeStart, com.StartContent{OpponentName: s.cli2.name}); err != nil {
+		return fmt.Errorf("failed to write START message for conn %#p. %w", s.cli1.conn, err)
+	}
+	if err := com.WriteMessage(s.cli2.conn, com.TypeStart, com.StartContent{OpponentName: s.cli1.name}); err != nil {
+		return fmt.Errorf("failed to write START message for conn %#p. %w", s.cli2.conn, err)
+	}
+	s.cli1.session = s
+	s.cli2.session = s
+	log.Printf("Session %#p started (conn1: %#p conn2: %#p)", s, s.cli1.conn, s.cli2.conn)
+	return nil
 }
 
 // Close closes the target session by removing session references and closing attached connections.
