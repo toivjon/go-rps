@@ -138,7 +138,10 @@ func (s *Server) handleJoin(conn net.Conn, content com.JoinContent) {
 func (s *Server) handleSelect(conn net.Conn, content com.SelectContent) {
 	if client, ok := s.conns[conn]; ok {
 		log.Printf("Connection %#p selection received (selection: %s)", conn, content.Selection)
-		client.session.Select(client, content.Selection)
+		if err := client.session.Select(client, content.Selection); err != nil {
+			log.Printf("Failed to process SELECT in session %#p. %s", client.session, err)
+			client.session.Close()
+		}
 	}
 }
 
