@@ -10,20 +10,17 @@ import (
 
 // Session represents a single game session where to clients battle against each other in RPS rounds.
 type Session struct {
-	cli1          *Client
-	cli2          *Client
-	cli1Selection game.Selection
-	cli2Selection game.Selection
+	cli1  *Client
+	cli2  *Client
+	round *Round
 }
 
 // NewSession builds a new session for the given clients and attachs the session relation.
 func NewSession(cli1, cli2 *Client) *Session {
-	session := &Session{
-		cli1:          cli1,
-		cli2:          cli2,
-		cli1Selection: game.SelectionNone,
-		cli2Selection: game.SelectionNone,
-	}
+	session := new(Session)
+	session.cli1 = cli1
+	session.cli2 = cli2
+	session.round = NewRound(session)
 	cli1.session = session
 	cli2.session = session
 	return session
@@ -45,46 +42,28 @@ func (s *Session) Start() error {
 func (s *Session) Select(cli *Client, selection game.Selection) {
 	switch cli.conn {
 	case s.cli1.conn:
-		s.cli1Selection = selection
+		s.round.selection1 = selection
 	case s.cli2.conn:
-		s.cli2Selection = selection
+		s.round.selection2 = selection
 	}
-	if s.cli1Selection != game.SelectionNone && s.cli2Selection != game.SelectionNone {
-		s.resolveResult()
-	}
-}
-
-func (s *Session) resolveResult() {
-	result1 := game.ResultDraw
-	result2 := game.ResultDraw
-	switch {
-	case s.cli1Selection == s.cli2Selection:
-		break
-	case s.cli1Selection.Beats(s.cli2Selection):
-		result1 = game.ResultWin
-		result2 = game.ResultLose
-	default:
-		result1 = game.ResultLose
-		result2 = game.ResultWin
-	}
-	conn1 := s.cli1.conn
-	conn2 := s.cli2.conn
-	messageContent := com.ResultContent{OpponentSelection: s.cli2Selection, Result: result1}
-	if err := com.WriteMessage(conn1, com.TypeResult, messageContent); err != nil {
-		log.Printf("Failed to write RESULT message for conn %#p. %s", conn1, err)
-		s.Close()
-		return
-	}
-	messageContent = com.ResultContent{OpponentSelection: s.cli1Selection, Result: result2}
-	if err := com.WriteMessage(conn2, com.TypeResult, messageContent); err != nil {
-		log.Printf("failed to write RESULT message for conn  %#p. %s", conn2, err)
-		s.Close()
-		return
-	}
-	log.Printf("Session %#p round result %#p:%s and %#p:%s", s, conn1, result1, conn2, result2)
-	if result1 == game.ResultDraw && result2 == game.ResultDraw {
-		s.cli1Selection = game.SelectionNone
-		s.cli2Selection = game.SelectionNone
+	if s.round.Ended() {
+		result1, result2 := s.round.Result()
+		messageContent := com.ResultContent{OpponentSelection: s.round.selection2, Result: result1}
+		if err := com.WriteMessage(s.cli1.conn, com.TypeResult, messageContent); err != nil {
+			log.Printf("Failed to write RESULT message for conn %#p. %s", s.cli1.conn, err)
+			s.Close()
+			return
+		}
+		messageContent = com.ResultContent{OpponentSelection: s.round.selection1, Result: result2}
+		if err := com.WriteMessage(s.cli2.conn, com.TypeResult, messageContent); err != nil {
+			log.Printf("failed to write RESULT message for conn  %#p. %s", s.cli2.conn, err)
+			s.Close()
+			return
+		}
+		log.Printf("Session %#p round result %#p:%s and %#p:%s", s, s.cli1.conn, result1, s.cli2.conn, result2)
+		if result1 == game.ResultDraw && result2 == game.ResultDraw {
+			s.round = NewRound(s)
+		}
 	}
 }
 
