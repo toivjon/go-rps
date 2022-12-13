@@ -17,12 +17,6 @@ type Server struct {
 	leaveCh  chan net.Conn
 }
 
-type Client struct {
-	conn    net.Conn
-	name    string
-	session *Session
-}
-
 type Message[T any] struct {
 	conn    net.Conn
 	content T
@@ -80,7 +74,7 @@ func newAccept(listener net.Listener) <-chan net.Conn {
 }
 
 func (s *Server) handleAccept(conn net.Conn) {
-	s.conns[conn] = &Client{conn: conn, name: "", session: nil}
+	s.conns[conn] = NewClient(conn)
 	go s.processClient(conn)
 	log.Printf("Connection %#p added (conns: %d).", conn, len(s.conns))
 }
