@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net"
@@ -74,41 +73,10 @@ func newAccept(listener net.Listener) <-chan net.Conn {
 }
 
 func (s *Server) handleAccept(conn net.Conn) {
-	s.conns[conn] = NewClient(conn)
-	go s.processClient(conn)
+	client := NewClient(conn)
+	s.conns[conn] = client
+	go client.Run(s)
 	log.Printf("Connection %#p added (conns: %d).", conn, len(s.conns))
-}
-
-func (s *Server) processClient(conn net.Conn) {
-	defer func() {
-		s.leaveCh <- conn
-		conn.Close()
-	}()
-	for {
-		message, err := com.Read[com.Message](conn)
-		if err != nil {
-			return
-		}
-		switch message.Type {
-		case com.TypeJoin:
-			content := new(com.JoinContent)
-			if err := json.Unmarshal(message.Content, &content); err != nil {
-				log.Printf("Failed to unmarshal %T message content. %s", content, err)
-				return
-			}
-			s.joinCh <- Message[com.JoinContent]{conn: conn, content: *content}
-		case com.TypeSelect:
-			content := new(com.SelectContent)
-			if err := json.Unmarshal(message.Content, &content); err != nil {
-				log.Printf("Failed to unmarshal %T message content. %s", content, err)
-				return
-			}
-			s.selectCh <- Message[com.SelectContent]{conn: conn, content: *content}
-		case com.TypeResult, com.TypeStart:
-			log.Printf("Connection %#p received unsupported message type %s!", conn, message.Type)
-			return
-		}
-	}
 }
 
 func (s *Server) handleJoin(conn net.Conn, content com.JoinContent) {
