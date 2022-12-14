@@ -63,7 +63,7 @@ func newAccept(listener net.Listener) <-chan net.Conn {
 		for {
 			conn, err := listener.Accept()
 			if err != nil {
-				log.Printf("Error accepting incoming connection: %v", err.Error())
+				log.Printf("Error accepting incoming connection: %s", err)
 			} else {
 				accept <- conn
 			}
