@@ -17,10 +17,11 @@ type Session struct {
 
 // NewSession builds a new session for the given clients and attachs the session relation.
 func NewSession(cli1, cli2 *Client) *Session {
-	session := new(Session)
-	session.cli1 = cli1
-	session.cli2 = cli2
-	session.round = NewRound(session)
+	session := &Session{
+		cli1:  cli1,
+		cli2:  cli2,
+		round: NewRound(),
+	}
 	cli1.session = session
 	cli2.session = session
 	return session
@@ -58,7 +59,7 @@ func (s *Session) Select(cli *Client, selection game.Selection) error {
 		}
 		log.Printf("Session %#p round result %#p:%s and %#p:%s", s, s.cli1.conn, result1, s.cli2.conn, result2)
 		if result1 == game.ResultDraw && result2 == game.ResultDraw {
-			s.round = NewRound(s)
+			s.round = NewRound()
 		}
 	}
 	return nil

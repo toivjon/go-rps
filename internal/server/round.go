@@ -10,8 +10,8 @@ type Round struct {
 	selection2 game.Selection
 }
 
-// NewRound builds a new round for the provided session.
-func NewRound(session *Session) *Round {
+// NewRound builds a new round with empty selections.
+func NewRound() *Round {
 	return &Round{
 		selection1: game.SelectionNone,
 		selection2: game.SelectionNone,
