@@ -41,10 +41,10 @@ func (s *Session) Start() error {
 
 // Select applies the given selection for the target client for the ongoing RPS game round.
 func (s *Session) Select(cli *Client, selection game.Selection) error {
-	switch cli.conn {
-	case s.cli1.conn:
+	switch cli {
+	case s.cli1:
 		s.round.selection1 = selection
-	case s.cli2.conn:
+	case s.cli2:
 		s.round.selection2 = selection
 	}
 	if s.round.Ended() {
