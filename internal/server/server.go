@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"os"
@@ -10,23 +11,23 @@ import (
 )
 
 type Server struct {
-	conns    map[net.Conn]*Client
+	conns    map[io.ReadWriteCloser]*Client
 	joinCh   chan Message[com.JoinContent]
 	selectCh chan Message[com.SelectContent]
-	leaveCh  chan net.Conn
+	leaveCh  chan io.ReadWriteCloser
 }
 
 type Message[T any] struct {
-	conn    net.Conn
+	conn    io.ReadWriteCloser
 	content T
 }
 
 func NewServer() Server {
 	return Server{
-		conns:    make(map[net.Conn]*Client),
+		conns:    make(map[io.ReadWriteCloser]*Client),
 		joinCh:   make(chan Message[com.JoinContent]),
 		selectCh: make(chan Message[com.SelectContent]),
-		leaveCh:  make(chan net.Conn),
+		leaveCh:  make(chan io.ReadWriteCloser),
 	}
 }
 
@@ -72,14 +73,14 @@ func newAccept(listener net.Listener) <-chan net.Conn {
 	return accept
 }
 
-func (s *Server) handleAccept(conn net.Conn) {
+func (s *Server) handleAccept(conn io.ReadWriteCloser) {
 	client := NewClient(conn)
 	s.conns[conn] = client
 	go client.Run(s)
 	log.Printf("Connection %#p added (conns: %d).", conn, len(s.conns))
 }
 
-func (s *Server) handleJoin(conn net.Conn, content com.JoinContent) {
+func (s *Server) handleJoin(conn io.ReadWriteCloser, content com.JoinContent) {
 	if client, ok := s.conns[conn]; ok {
 		client.name = content.Name
 		s.conns[conn] = client
@@ -97,7 +98,7 @@ func (s *Server) handleJoin(conn net.Conn, content com.JoinContent) {
 	}
 }
 
-func (s *Server) handleSelect(conn net.Conn, content com.SelectContent) {
+func (s *Server) handleSelect(conn io.ReadWriteCloser, content com.SelectContent) {
 	if client, ok := s.conns[conn]; ok {
 		log.Printf("Connection %#p selection received (selection: %s)", conn, content.Selection)
 		if err := client.session.Select(client, content.Selection); err != nil {
@@ -107,7 +108,7 @@ func (s *Server) handleSelect(conn net.Conn, content com.SelectContent) {
 	}
 }
 
-func (s *Server) handleLeave(conn net.Conn) {
+func (s *Server) handleLeave(conn io.ReadWriteCloser) {
 	if client, ok := s.conns[conn]; ok {
 		delete(s.conns, conn)
 		if client.session != nil {

@@ -2,21 +2,21 @@ package server
 
 import (
 	"encoding/json"
+	"io"
 	"log"
-	"net"
 
 	"github.com/toivjon/go-rps/internal/com"
 )
 
 // Client represents a single client connected to the server.
 type Client struct {
-	conn    net.Conn
+	conn    io.ReadWriteCloser
 	name    string
 	session *Session
 }
 
 // NewClient builds a new client with the provided connection.
-func NewClient(conn net.Conn) *Client {
+func NewClient(conn io.ReadWriteCloser) *Client {
 	return &Client{
 		conn:    conn,
 		name:    "",
