@@ -10,6 +10,7 @@ import (
 	"github.com/toivjon/go-rps/internal/com"
 )
 
+// Server represents a RPS server handling the connection communication, matchmaking and game logics.
 type Server struct {
 	conns    map[io.ReadWriteCloser]*Client
 	joinCh   chan Message[com.JoinContent]
