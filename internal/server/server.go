@@ -91,7 +91,7 @@ func (s *Server) handleJoin(conn io.ReadWriteCloser, content com.JoinContent) {
 			if otherClient.session == nil && otherClient != client && otherClient.name != "" {
 				session := NewSession(client, otherClient)
 				if err := session.Start(); err != nil {
-					log.Printf("Failed to start session for connection %#p and %#p", client.conn, otherClient.conn)
+					log.Printf("Failed to start session for connection %s and %s", client, otherClient)
 				}
 			}
 		}

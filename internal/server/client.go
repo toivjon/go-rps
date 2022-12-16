@@ -2,10 +2,12 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 
 	"github.com/toivjon/go-rps/internal/com"
+	"github.com/toivjon/go-rps/internal/game"
 )
 
 // Client represents a single client connected to the server.
@@ -22,6 +24,37 @@ func NewClient(conn io.ReadWriteCloser) *Client {
 		name:    "",
 		session: nil,
 	}
+}
+
+// WriteStart sends a START message to the client.
+func (c *Client) WriteStart(opponentName string) error {
+	content := com.StartContent{OpponentName: opponentName}
+	if err := com.WriteMessage(c.conn, com.TypeStart, content); err != nil {
+		return fmt.Errorf("failed to write START message. %w", err)
+	}
+	return nil
+}
+
+// WriteResult sends a RESULT message to the client.
+func (c *Client) WriteResult(opponentSelection game.Selection, result game.Result) error {
+	messageContent := com.ResultContent{OpponentSelection: opponentSelection, Result: result}
+	if err := com.WriteMessage(c.conn, com.TypeResult, messageContent); err != nil {
+		return fmt.Errorf("failed to write RESULT message. %w", err)
+	}
+	return nil
+}
+
+// String returns a string representing the client.
+func (c *Client) String() string {
+	return fmt.Sprintf("client(%#p:%s)", c.conn, c.name)
+}
+
+// Close will close the client connection.
+func (c *Client) Close() error {
+	if err := c.conn.Close(); err != nil {
+		return fmt.Errorf("failed to close conn %#p. %w", c.conn, err)
+	}
+	return nil
 }
 
 // Run starts the processing of the client.

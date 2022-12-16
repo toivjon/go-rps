@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/toivjon/go-rps/internal/com"
 	"github.com/toivjon/go-rps/internal/game"
 )
 
@@ -29,13 +28,13 @@ func NewSession(cli1, cli2 *Client) *Session {
 
 // Start starts the target session by notifying target clients to start the actual gaming.
 func (s *Session) Start() error {
-	if err := com.WriteMessage(s.cli1.conn, com.TypeStart, com.StartContent{OpponentName: s.cli2.name}); err != nil {
-		return fmt.Errorf("failed to write START message for conn %#p. %w", s.cli1.conn, err)
+	if err := s.cli1.WriteStart(s.cli2.name); err != nil {
+		return fmt.Errorf("failed to write START message for %s. %w", s.cli1, err)
 	}
-	if err := com.WriteMessage(s.cli2.conn, com.TypeStart, com.StartContent{OpponentName: s.cli1.name}); err != nil {
-		return fmt.Errorf("failed to write START message for conn %#p. %w", s.cli2.conn, err)
+	if err := s.cli2.WriteStart(s.cli1.name); err != nil {
+		return fmt.Errorf("failed to write START message for %s. %w", s.cli2, err)
 	}
-	log.Printf("Session %#p started (conn1: %#p conn2: %#p)", s, s.cli1.conn, s.cli2.conn)
+	log.Printf("Session %#p started (%s & %s)", s, s.cli1, s.cli2)
 	return nil
 }
 
@@ -49,15 +48,13 @@ func (s *Session) Select(cli *Client, selection game.Selection) error {
 	}
 	if s.round.Ended() {
 		result1, result2 := s.round.Result()
-		messageContent := com.ResultContent{OpponentSelection: s.round.selection2, Result: result1}
-		if err := com.WriteMessage(s.cli1.conn, com.TypeResult, messageContent); err != nil {
-			return fmt.Errorf("failed to write RESULT message for conn %#p. %w", s.cli1.conn, err)
+		if err := s.cli1.WriteResult(s.round.selection2, result1); err != nil {
+			return fmt.Errorf("failed to write RESULT message for %s. %w", s.cli1, err)
 		}
-		messageContent = com.ResultContent{OpponentSelection: s.round.selection1, Result: result2}
-		if err := com.WriteMessage(s.cli2.conn, com.TypeResult, messageContent); err != nil {
-			return fmt.Errorf("failed to write RESULT message for conn  %#p. %w", s.cli2.conn, err)
+		if err := s.cli2.WriteResult(s.round.selection1, result2); err != nil {
+			return fmt.Errorf("failed to write RESULT message for %s. %w", s.cli2, err)
 		}
-		log.Printf("Session %#p round result %#p:%s and %#p:%s", s, s.cli1.conn, result1, s.cli2.conn, result2)
+		log.Printf("Session %#p round result %s:%s and %s:%s", s, s.cli1, result1, s.cli2, result2)
 		if result1 == game.ResultDraw && result2 == game.ResultDraw {
 			s.round = NewRound()
 		}
@@ -69,7 +66,7 @@ func (s *Session) Select(cli *Client, selection game.Selection) error {
 func (s *Session) Close() {
 	s.cli1.session = nil
 	s.cli2.session = nil
-	log.Printf("Session %#p closed (conn1: %#p conn2: %#p)", s, s.cli1.conn, s.cli2.conn)
-	s.cli1.conn.Close()
-	s.cli2.conn.Close()
+	log.Printf("Session %#p closed (conn1: %s conn2: %s)", s, s.cli1, s.cli2)
+	s.cli1.Close()
+	s.cli2.Close()
 }
