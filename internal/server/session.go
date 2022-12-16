@@ -66,7 +66,7 @@ func (s *Session) Select(cli *Client, selection game.Selection) error {
 func (s *Session) Close() {
 	s.cli1.session = nil
 	s.cli2.session = nil
-	log.Printf("Session %#p closed (conn1: %s conn2: %s)", s, s.cli1, s.cli2)
+	log.Printf("Session %#p closed (%s & %s)", s, s.cli1, s.cli2)
 	s.cli1.Close()
 	s.cli2.Close()
 }
