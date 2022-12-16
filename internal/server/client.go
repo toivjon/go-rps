@@ -44,19 +44,6 @@ func (c *Client) WriteResult(opponentSelection game.Selection, result game.Resul
 	return nil
 }
 
-// String returns a string representing the client.
-func (c *Client) String() string {
-	return fmt.Sprintf("client(%#p:%s)", c.conn, c.name)
-}
-
-// Close will close the client connection.
-func (c *Client) Close() error {
-	if err := c.conn.Close(); err != nil {
-		return fmt.Errorf("failed to close conn %#p. %w", c.conn, err)
-	}
-	return nil
-}
-
 // Run starts the processing of the client.
 func (c *Client) Run(server *Server) {
 	defer func() {
@@ -88,4 +75,17 @@ func (c *Client) Run(server *Server) {
 			return
 		}
 	}
+}
+
+// String returns a string representing the client.
+func (c *Client) String() string {
+	return fmt.Sprintf("client(%#p:%s)", c.conn, c.name)
+}
+
+// Close will close the client connection.
+func (c *Client) Close() error {
+	if err := c.conn.Close(); err != nil {
+		return fmt.Errorf("failed to close conn %#p. %w", c.conn, err)
+	}
+	return nil
 }
