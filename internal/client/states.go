@@ -82,12 +82,17 @@ func Waiting(ctx Context) (State, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to read RESULT message. %w", err)
 	}
-	log.Printf("Result: %+v", message)
-	if message.Result == game.ResultDraw {
-		log.Println("Round ended in a draw. Let's have an another round...")
-		return Started, nil
+	switch message.Result {
+	case game.ResultWin:
+		log.Printf("Opponent selected %q. You win the game!", message.OpponentSelection)
+		return nil, ErrEnd
+	case game.ResultLose:
+		log.Printf("Opponent selected %q. You lose the game!", message.OpponentSelection)
+		return nil, ErrEnd
+	case game.ResultDraw:
+		log.Printf("Opponent selected %q. It's a draw! Let's have an another round...", message.OpponentSelection)
 	}
-	return nil, ErrEnd
+	return Started, nil
 }
 
 func waitInput(reader io.Reader) (string, error) {
