@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"io"
 	"log"
 	"net"
@@ -12,10 +11,12 @@ import (
 
 // Server represents a RPS server handling the connection communication, matchmaking and game logics.
 type Server struct {
+	listener net.Listener
 	conns    map[io.ReadWriteCloser]*Client
 	joinCh   chan Message[com.JoinContent]
 	selectCh chan Message[com.SelectContent]
 	leaveCh  chan io.ReadWriteCloser
+	shutdown <-chan os.Signal
 }
 
 type Message[T any] struct {
@@ -23,25 +24,20 @@ type Message[T any] struct {
 	content T
 }
 
-// NewServer builds a new server and all necessary channels.
-func NewServer() Server {
+// NewServer builds a new server with the given network listener and shutdown channel.
+func NewServer(listener net.Listener, shutdown <-chan os.Signal) Server {
 	return Server{
+		listener: listener,
 		conns:    make(map[io.ReadWriteCloser]*Client),
 		joinCh:   make(chan Message[com.JoinContent]),
 		selectCh: make(chan Message[com.SelectContent]),
 		leaveCh:  make(chan io.ReadWriteCloser),
+		shutdown: shutdown,
 	}
 }
 
-func (s *Server) Run(port uint, host string, shutdown chan os.Signal) error {
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", host, port))
-	if err != nil {
-		return fmt.Errorf("failed to start listening TCP socket on port %d. %w", port, err)
-	}
-	defer listener.Close()
-
-	log.Printf("Waiting for clients on port: %d", port)
-	accept := newAccept(listener)
+func (s *Server) Run() error {
+	accept := newAccept(s.listener)
 	for {
 		select {
 		case conn := <-accept:
@@ -52,7 +48,7 @@ func (s *Server) Run(port uint, host string, shutdown chan os.Signal) error {
 			s.handleSelect(message.conn, message.content)
 		case conn := <-s.leaveCh:
 			s.handleLeave(conn)
-		case <-shutdown:
+		case <-s.shutdown:
 			log.Printf("Shutting down server...")
 			// ...
 			return nil
