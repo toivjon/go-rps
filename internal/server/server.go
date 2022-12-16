@@ -23,6 +23,7 @@ type Message[T any] struct {
 	content T
 }
 
+// NewServer builds a new server and all necessary channels.
 func NewServer() Server {
 	return Server{
 		conns:    make(map[io.ReadWriteCloser]*Client),
