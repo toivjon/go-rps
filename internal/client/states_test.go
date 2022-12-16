@@ -215,14 +215,19 @@ func TestWaiting(t *testing.T) {
 	})
 	t.Run("ReturnNilWhenSuccessWithNoDraw", func(t *testing.T) {
 		t.Parallel()
-		data := `{"type":"RESULT","content":{"opponentSelection":"s","result":"WIN"}}`
-		ctx := client.NewContext(new(readerMock), newReadableConnMock(data, nil))
-		result, err := client.Waiting(ctx)
-		if result != nil {
-			t.Fatalf("Expected nil result, but %v was returned!", result)
+		payloads := []string{
+			`{"type":"RESULT","content":{"opponentSelection":"s","result":"WIN"}}`,
+			`{"type":"RESULT","content":{"opponentSelection":"s","result":"LOSE"}}`,
 		}
-		if !errors.Is(err, client.ErrEnd) {
-			t.Fatalf("Expected %q error, but %q was returned!", client.ErrEnd, err)
+		for _, payload := range payloads {
+			ctx := client.NewContext(new(readerMock), newReadableConnMock(payload, nil))
+			result, err := client.Waiting(ctx)
+			if result != nil {
+				t.Fatalf("Expected nil result, but %v was returned!", result)
+			}
+			if !errors.Is(err, client.ErrEnd) {
+				t.Fatalf("Expected %q error, but %q was returned!", client.ErrEnd, err)
+			}
 		}
 	})
 }
