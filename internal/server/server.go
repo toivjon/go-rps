@@ -19,6 +19,7 @@ type Server struct {
 	Shutdown <-chan os.Signal
 }
 
+// Message represents an incoming message from a client connection.
 type Message[T any] struct {
 	Conn    io.ReadWriteCloser
 	Content T
