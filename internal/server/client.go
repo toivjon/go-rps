@@ -12,24 +12,24 @@ import (
 
 // Client represents a single client connected to the server.
 type Client struct {
-	conn    io.ReadWriteCloser
-	name    string
-	session *Session
+	Conn    io.ReadWriteCloser
+	Name    string
+	Session *Session
 }
 
 // NewClient builds a new client with the provided connection.
 func NewClient(conn io.ReadWriteCloser) *Client {
 	return &Client{
-		conn:    conn,
-		name:    "",
-		session: nil,
+		Conn:    conn,
+		Name:    "",
+		Session: nil,
 	}
 }
 
 // WriteStart sends a START message to the client.
 func (c *Client) WriteStart(opponentName string) error {
 	content := com.StartContent{OpponentName: opponentName}
-	if err := com.WriteMessage(c.conn, com.TypeStart, content); err != nil {
+	if err := com.WriteMessage(c.Conn, com.TypeStart, content); err != nil {
 		return fmt.Errorf("failed to write START message. %w", err)
 	}
 	return nil
@@ -38,20 +38,24 @@ func (c *Client) WriteStart(opponentName string) error {
 // WriteResult sends a RESULT message to the client.
 func (c *Client) WriteResult(opponentSelection game.Selection, result game.Result) error {
 	messageContent := com.ResultContent{OpponentSelection: opponentSelection, Result: result}
-	if err := com.WriteMessage(c.conn, com.TypeResult, messageContent); err != nil {
+	if err := com.WriteMessage(c.Conn, com.TypeResult, messageContent); err != nil {
 		return fmt.Errorf("failed to write RESULT message. %w", err)
 	}
 	return nil
 }
 
 // Run starts the processing of the client.
-func (c *Client) Run(server *Server) {
+func (c *Client) Run(
+	leaveCh chan<- io.ReadWriteCloser,
+	joinCh chan<- Message[com.JoinContent],
+	selectCh chan<- Message[com.SelectContent],
+) {
 	defer func() {
-		server.leaveCh <- c.conn
-		c.conn.Close()
+		leaveCh <- c.Conn
+		c.Conn.Close()
 	}()
 	for {
-		message, err := com.Read[com.Message](c.conn)
+		message, err := com.Read[com.Message](c.Conn)
 		if err != nil {
 			return
 		}
@@ -62,16 +66,16 @@ func (c *Client) Run(server *Server) {
 				log.Printf("Failed to unmarshal %T message content. %s", content, err)
 				return
 			}
-			server.joinCh <- Message[com.JoinContent]{conn: c.conn, content: *content}
+			joinCh <- Message[com.JoinContent]{Conn: c.Conn, Content: *content}
 		case com.TypeSelect:
 			content := new(com.SelectContent)
 			if err := json.Unmarshal(message.Content, &content); err != nil {
 				log.Printf("Failed to unmarshal %T message content. %s", content, err)
 				return
 			}
-			server.selectCh <- Message[com.SelectContent]{conn: c.conn, content: *content}
+			selectCh <- Message[com.SelectContent]{Conn: c.Conn, Content: *content}
 		case com.TypeResult, com.TypeStart:
-			log.Printf("Connection %#p received unsupported message type %s!", c.conn, message.Type)
+			log.Printf("Connection %#p received unsupported message type %s!", c.Conn, message.Type)
 			return
 		}
 	}
@@ -79,13 +83,13 @@ func (c *Client) Run(server *Server) {
 
 // String returns a string representing the client.
 func (c *Client) String() string {
-	return fmt.Sprintf("client(%#p:%s)", c.conn, c.name)
+	return fmt.Sprintf("client(%#p:%s)", c.Conn, c.Name)
 }
 
 // Close will close the client connection.
 func (c *Client) Close() error {
-	if err := c.conn.Close(); err != nil {
-		return fmt.Errorf("failed to close conn %#p. %w", c.conn, err)
+	if err := c.Conn.Close(); err != nil {
+		return fmt.Errorf("failed to close conn %#p. %w", c.Conn, err)
 	}
 	return nil
 }

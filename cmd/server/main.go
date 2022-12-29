@@ -41,8 +41,6 @@ func run(port uint, host string) error {
 	signal.Notify(shutdown, syscall.SIGINT, syscall.SIGTERM)
 
 	server := server.NewServer(listener, shutdown)
-	if err := server.Run(); err != nil {
-		return fmt.Errorf("failed to run server. %w", err)
-	}
+	server.Run()
 	return nil
 }
