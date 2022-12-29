@@ -88,7 +88,7 @@ func TestReadMessage(t *testing.T) {
 	})
 	t.Run("ReturnsErrorWhenUnmarshallingFails", func(t *testing.T) {
 		t.Parallel()
-		data := `{"type":"JOIN","content":{invalid}}`
+		data := `{"type":"JOIN","content":{"name":313}}`
 		reader := &readerMock{n: len(data), err: nil, val: []byte(data)}
 		if _, err := com.ReadMessage[com.JoinContent](reader); err == nil {
 			t.Fatal("Expected an error, but nil was returned!")
