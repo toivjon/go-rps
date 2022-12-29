@@ -36,6 +36,7 @@ func NewServer(listener net.Listener, shutdown <-chan os.Signal) Server {
 	}
 }
 
+// Run starts running the server main loop which accepts new connections and handles incoming messages.
 func (s *Server) Run() {
 	accept := newAccept(s.Listener)
 	for {
