@@ -8,7 +8,7 @@ cd %rootpath%
 
 :: Run the unit tests.
 echo Running unit tests. Please wait...
-go test -failfast -short -coverprofile coverage.out ./... || exit /B 1
+go test -failfast -short -coverprofile coverage.out ./internal/... || exit /B 1
 
 :: Find the unit tests coverage.
 set coveragethreshold=95.0%
